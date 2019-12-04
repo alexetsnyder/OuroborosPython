@@ -4,12 +4,12 @@ from twilio.rest import Client
 from twilio.http.http_client import TwilioHttpClient
 
 class TwilioAuth:
-	ACCOUNT_SID = 'ACebead06f395f5d0e36f2984a088f838f'
-	AUTH_TOKEN = '943221eca44784a7050835bcf7ecee85'
+	ACCOUNT_SID = ''
+	AUTH_TOKEN = ''
 
 class PhoneBook:
-	NICK_BOLTON = '+15134761150'
-	ALEX_SNYDER = '+14194390173'
+	NICK_BOLTON = ''
+	ALEX_SNYDER = ''
 	TWILIO      = '+19382223913'
 
 class SMS:

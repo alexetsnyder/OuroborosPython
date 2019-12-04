@@ -1,0 +1,66 @@
+itladmin@its-006-t2d:~$ traceroute www.phy.ohiou.edu
+traceroute to www.phy.ohiou.edu (132.235.24.25), 30 hops max, 60 byte packets
+ 1  davidson-csu1.itl.ohiou.edu (132.235.201.62)  0.094 ms  0.079 ms  0.071 ms
+ 2  dhcp-160-014.east-green.ohiou.edu (132.235.160.14)  0.345 ms  0.338 ms  0.327 ms
+ 3  dhcp-160-126.east-green.ohiou.edu (132.235.160.126)  0.606 ms  0.596 ms  0.587 ms
+ 4  132.235.11.254 (132.235.11.254)  2.868 ms  2.927 ms  2.919 ms
+ 5  plato.phy.ohiou.edu (132.235.24.25)  0.738 ms  0.829 ms  0.866 ms
+itladmin@its-006-t2d:~$ 
+itladmin@its-006-t2d:~$ 
+itladmin@its-006-t2d:~$ traceroute www.frognet.net
+traceroute to www.frognet.net (192.254.173.160), 30 hops max, 60 byte packets
+ 1  davidson-csu1.itl.ohiou.edu (132.235.201.62)  0.115 ms  0.103 ms  0.093 ms
+ 2  dhcp-160-014.east-green.ohiou.edu (132.235.160.14)  0.318 ms  0.310 ms  0.301 ms
+ 3  dhcp-160-126.east-green.ohiou.edu (132.235.160.126)  0.529 ms  0.567 ms  0.558 ms
+ 4  132.235.11.254 (132.235.11.254)  2.793 ms  3.031 ms  2.920 ms
+ 5  132.235.66.142 (132.235.66.142)  1.211 ms  1.250 ms  1.241 ms
+ 6  132.235.66.134 (132.235.66.134)  2.128 ms  1.987 ms  2.041 ms
+ 7  132.235.66.133 (132.235.66.133)  2.228 ms  2.123 ms  2.105 ms
+ 8  athna-r9-xe-1-0-0s395.core.oar.net (199.18.17.17)  2.128 ms  2.105 ms  2.092 ms
+ 9  athna-r5-xe-3-3-1s100.core.oar.net (199.218.38.97)  2.033 ms  2.165 ms  2.059 ms
+10  clmbn-r5-et-3-0-0s100.core.oar.net (199.218.39.221)  6.110 ms  6.105 ms  6.002 ms
+11  cncno-r5-et-1-0-0s100.core.oar.net (199.218.39.242)  8.928 ms  8.910 ms  8.965 ms
+12  et-10-0-0.1243.rtr.eqch.net.internet2.edu (64.57.29.65)  12.719 ms  12.873 ms  20.557 ms
+13  br01.chcgildt.integra.net (206.223.119.101)  17.039 ms  17.002 ms  16.995 ms
+14  be101.ar13.slkcutxd.integra.net (209.63.98.150)  64.973 ms  64.953 ms  64.931 ms
+15  208.186.235.164 (208.186.235.164)  50.959 ms  51.033 ms  50.817 ms
+16  prv-211-1-1-3.unifiedlayer.com (69.27.175.149)  50.993 ms prv-211-1-1-2.unifiedlayer.com (69.27.175.147)  48.985 ms prv-211-1-1-0.unifiedlayer.com (69.27.175.143)  51.671 ms
+17  162-144-240-141.unifiedlayer.com (162.144.240.141)  51.959 ms  52.169 ms 162-144-240-139.unifiedlayer.com (162.144.240.139)  51.933 ms
+18  162-144-240-39.unifiedlayer.com (162.144.240.39)  49.112 ms 162-144-240-41.unifiedlayer.com (162.144.240.41)  48.725 ms  48.700 ms
+19  * * *
+20  fro.frognet.net (192.254.173.160)  51.960 ms  51.783 ms  51.755 ms
+itladmin@its-006-t2d:~$ 
+itladmin@its-006-t2d:~$ 
+itladmin@its-006-t2d:~$ traceroute www.kame.net
+traceroute to www.kame.net (203.178.141.194), 30 hops max, 60 byte packets
+ 1  davidson-csu1.itl.ohiou.edu (132.235.201.62)  0.075 ms  0.061 ms  0.086 ms
+ 2  dhcp-160-014.east-green.ohiou.edu (132.235.160.14)  0.268 ms  0.353 ms  0.342 ms
+ 3  dhcp-160-126.east-green.ohiou.edu (132.235.160.126)  0.616 ms  0.606 ms  0.591 ms
+ 4  132.235.11.254 (132.235.11.254)  2.690 ms  2.684 ms  2.670 ms
+ 5  132.235.66.142 (132.235.66.142)  1.180 ms  1.167 ms  1.056 ms
+ 6  132.235.66.134 (132.235.66.134)  1.963 ms  1.964 ms  2.030 ms
+ 7  132.235.66.133 (132.235.66.133)  1.915 ms  2.416 ms  2.406 ms
+ 8  athna-r9-xe-1-0-0s395.core.oar.net (199.18.17.17)  2.387 ms  2.381 ms  2.371 ms
+ 9  clmbn-r9-xe-1-0-0s100.core.oar.net (199.218.38.102)  8.578 ms  8.533 ms  8.544 ms
+10  schrd-r9-xe-0-0-1s100.core.oar.net (199.218.39.126)  9.864 ms  9.837 ms schrd-r9-xe-0-0-0s100.core.oar.net (199.218.39.130)  9.843 ms
+11  10ge1-3.core1.cmh1.he.net (216.66.36.9)  9.846 ms  9.824 ms  9.941 ms
+12  10ge1-2.core1.chi1.he.net (184.105.222.165)  17.667 ms  17.637 ms  29.932 ms
+13  100ge14-2.core1.msp1.he.net (184.105.223.178)  29.453 ms  29.449 ms  29.429 ms
+14  100ge4-1.core1.sea1.he.net (184.105.223.193)  70.481 ms  65.897 ms  65.878 ms
+15  100ge8-1.core1.tyo1.he.net (184.105.213.118)  166.578 ms  157.930 ms  157.894 ms
+16  100ge10-2.core1.hkg1.he.net (184.105.64.129)  208.456 ms  208.554 ms  208.547 ms
+17  * * *
+18  sg-mx80-1j-xe-0-0-0-v2335.jp.apan.net (203.181.194.173)  292.419 ms  292.699 ms  292.391 ms
+19  kote-mx80-2j-xe-0-0-1-v4063.jp.apan.net (203.181.194.176)  256.449 ms  256.597 ms  256.251 ms
+20  kote-mx80-3j-xe-0-0-1-v2335.jp.apan.net (203.181.194.169)  253.501 ms  253.832 ms  253.754 ms
+21  tpr5-xe0-0-0-v6.jp.apan.net (203.181.249.100)  256.029 ms  255.940 ms  255.845 ms
+22  vlan53-cisco2.notemachi.wide.ad.jp (203.178.133.142)  241.160 ms  241.699 ms  241.235 ms
+23  juniper1.notemachi.wide.ad.jp (203.178.137.193)  236.989 ms  236.714 ms  237.104 ms
+24  ve-51.foundry6.otemachi.wide.ad.jp (203.178.141.141)  233.560 ms  233.762 ms  233.636 ms
+25  vm1.otemachi.wide.ad.jp (203.178.137.7)  249.978 ms  249.812 ms  249.882 ms
+26  * * *
+27  * * *
+28  * * *
+29  * * *
+30  * * *
+itladmin@its-006-t2d:~$ 

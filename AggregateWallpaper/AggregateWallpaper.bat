@@ -1,0 +1,3 @@
+@ECHO OFF
+"python" "AggregateWallpaper.py" DEBUG="False" SOURCE_FILE="C:\Users\asnyder\AppData\Local\Packages\Microsoft.Windows.ContentDeliveryManager_cw5n1h2txyewy\LocalState\Assets" DESTINATION_FILE="C:\Users\asnyder\Pictures\Desktop Wallpapers" FILE_SIZE_MIN_IN_KB="200"
+set /p=Press Enter to Continue...

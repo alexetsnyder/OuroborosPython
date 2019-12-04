@@ -1,0 +1,29 @@
+#Show Debug Info
+DEBUG = True
+
+#Creates an ASCII line to better differentiate output.
+DIVIDING_LINE_LENGTH = 200
+
+#Char for the ASCII line.
+DIVIDING_LINE_CHAR = '+'
+
+#Folder path to search for child folders with make configs.
+MAKEFILE_PATH_SEARCH = '..'
+
+#Name of makefile configs.
+MAKEFILE_CONFIG_NAME = 'MakefileConfig.txt'
+
+#These are the config file arguments that should be included in the command args for the python file (order matters).
+INCLUDE_IN_COMMAND_ARGS = ['MAKEFILE_PATH_SEARCH', 'MAKEFILE_CONFIG_NAME', 'DEBUG', 'DIVIDING_LINE_CHAR', 'DIVIDING_LINE_LENGTH']
+
+#Path to python on your computer (can just be python if it is in the PATH).
+EXECUTABLE_FILE = 'python'
+
+#This is the python file that runs when the created batch file is run.
+PYTHON_FILE = 'Makefile.py'
+
+#Bat file name that makefile creates.
+BATCH_NAME = 'Makefile.bat'
+
+#Waits for input from batch file, if program closes when done, but you want to show the results.
+INCLUDE_STOP = True

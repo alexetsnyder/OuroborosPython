@@ -1,0 +1,31 @@
+#GameData.txt
+
+#Window Config
+WINDOW_NAME = Open Star Cluster
+WINDOW_WIDTH = 640
+WINDOW_HEIGHT = 400
+WINDOW_SIZE = (@'WINDOW_WIDTH', @'WINDOW_HEIGHT')
+
+#GameEngine
+WORLD_CENTER = (|@'WINDOW_WIDTH' / 2|, |@'WINDOW_HEIGHT' / 2|)
+RENDOR_ORDER_ATTR = render_order
+
+#GameObjects
+GAME_OBJECTS = [ 
+				 $MovingText = {'movingtext', 'Error', (50, 200), (2, 2), color.WHITE, 3},
+				 $Star = {'Sun', (200, 200), 20, (3, 3), color.YELLOW, 2},
+				 $Ground = {'Ground', (400, 300), (1, 1), 20, color.GREEN, 12}, 
+				 $ThreeRects = {'tworects', @'WORLD_CENTER', (1, -1), 20, color.SILVER, 1},
+				 $Player = {'Player', @'WORLD_CENTER', (0, 0), 20, color.RED, 1},
+				 $ToolTip = {'tooltipid', '', (0, 0), (0, 0), color.HOT_PINK, 21}, 
+				 $HudInfo = {'hudinfo', ['tooltipid']}
+				]
+
+#WorldGen Config
+#WORLD_GEN = $WorldGen =
+#			{ 
+#				(|@'WINDOW_WIDTH' / 2|, |@'WINDOW_HEIGHT' / 2|),
+#			 	160, 
+#			 	@'WINDOW_DIMENSIONS',
+#			 	20
+#			}

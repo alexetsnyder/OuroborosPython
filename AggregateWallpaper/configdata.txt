@@ -1,0 +1,20 @@
+#Show Debug Info
+DEBUG = False
+
+#The File where the windows lockscreen pictures are stored 
+SOURCE_FILE = 'C:\Users\asnyder\AppData\Local\Packages\Microsoft.Windows.ContentDeliveryManager_cw5n1h2txyewy\LocalState\Assets'
+
+#The file where you want to put the converted pictures (doesn't have to exist)
+DESTINATION_FILE = 'C:\Users\asnyder\Pictures\Desktop Wallpapers'
+
+#File Size to Filter out the Icons
+FILE_SIZE_MIN_IN_KB = 200
+
+#These are the config file arguments that should be included in the command args for the python file 
+INCLUDE_IN_COMMAND_ARGS = ['DEBUG', 'SOURCE_FILE', 'DESTINATION_FILE', 'FILE_SIZE_MIN_IN_KB']
+
+#Path to python on your computer (can just be python if it is in the PATH)
+EXECUTABLE_PATH = 'python'
+
+#This is the python file that runs when the created batch file is run
+PYTHON_FILE_PATH = 'AggregateWallpaper.py'

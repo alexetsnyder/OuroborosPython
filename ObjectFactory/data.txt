@@ -1,0 +1,4 @@
+Item book 10 1
+Item dagger 25 5
+Item 'Magic Book' 5 25
+Item "Void Sword" 100 100

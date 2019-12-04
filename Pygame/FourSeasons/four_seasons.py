@@ -54,7 +54,7 @@ class FontInfo:
 		self.font_color = font_color
 
 class RenderText:
-	def __init__(self, text_str, position=(0,0), font_info=FontInfo()):
+	def __init__(self, text_str, position=(0, 0), font_info=FontInfo()):
 		self.text_str = text_str
 		self.font_info = font_info
 		self.x, self.y = self.position = position
@@ -72,30 +72,8 @@ class RenderText:
 		self.w, self.h = self.size = self.font.get_rect(self.text_str).size 
 		return self.size
 
-	def draw_to(self, surface):
-		self.font.render_to(surface, (self.x - self.w / 2, self.y - self.h / 2), self.text_str, self.font_info.font_color)
-
-class Suits:
-	DIAMONDS = 0
-	HEARTS   = 1
-	SPADES   = 2
-	CLUBS    = 3
-
-CARD_REPR = {
-	 1 :  'A',
-	 2 :  '2',
-	 3 :  '3',
-	 4 :  '4',
-	 5 :  '5',
-	 6 :  '6',
-	 7 :  '7',
-	 8 :  '8',
-	 9 :  '9',
-	10 : '10',
-	11 :  'J',
-	12 :  'Q',
-	13 :  'K'
-}
+	def draw(self, surface):
+		self.font.render_to(surface, (int(self.x - self.w // 2), int(self.y - self.h // 2)), self.text_str, self.font_info.font_color)
 
 class Shape:
 	def __init__(self, center, size,  color, width=0):
@@ -130,22 +108,56 @@ class Rect (Shape):
 		return v.v0 <= self.w and v.v1 <= self.h 
 
 	def draw(self, surface):
-		pygame.draw.rect(surface, self.color, pygame.Rect(self.top_left, self.size), self.width)
+		pygame.draw.rect(surface, self.color, pygame.Rect(self.top_left, self.size), int(self.width))
 
 class Card:
-	def __init__(self, value, suit):
+	class Suits:
+		DIAMONDS = 0
+		HEARTS   = 1
+		SPADES   = 2
+		CLUBS    = 3
+
+    #Do the oposite of this
+	CARD_REPR = {
+		 1 :  'A',
+		 2 :  '2',
+		 3 :  '3',
+		 4 :  '4',
+		 5 :  '5',
+		 6 :  '6',
+		 7 :  '7',
+		 8 :  '8',
+		 9 :  '9',
+		10 : '10',
+		11 :  'J',
+		12 :  'Q',
+		13 :  'K'
+	}
+
+	def __init__(self, value, suit, slot):
 		self.suit = suit 
 		self.value = value
+		self.slot = slot 
+		x, y = slot.rect.top_left
+		w, h = slot.rect.size 
+		mw, mh = (5, 5)
+		self.text = RenderText(Card.CARD_REPR[value], (x + w // 2,  y + h // 2))
+		self.rect = Rect((x + mw // 2, y + mh // 2), (w - mw, h - mh), Color.BLUE)
 
 	def update(self):
-		pass
+		self.text.update()
+		self.rect.update()
 
 	def draw(self, surface):
-		pass
+		self.rect.draw(surface)
+		self.text.draw(surface)
 
 class Deck:
-	def __init__(self):
-		pass
+	def __init__(self, count=52):
+		self.deck = []
+
+	def create(self):
+		self.deck.append(Card(1, Card.DIAMONDS, 3))
 
 	def shuffle(self):
 		pass
@@ -161,10 +173,10 @@ class Deck:
 
 class CardSlot:
 	def __init__(self, position, size):
-		self.rect = Rect(position, size, Color.RED, 1)
+		self.rect = Rect(position, size, Color.BLACK, 1)
 
 	def set_position(self, position):
-		self.rect.set_center(position)
+		self.rect.top_left = position
 
 	def update(self):
 		self.rect.update()
@@ -176,6 +188,7 @@ class Pair:
 	def __init__(self, x, y):
 		self.x = x 
 		self.y = y
+		self.pair = (x, y)
 
 class CardTable:
 	CARD_SIZE_RATIO = 2.5 / 3.5
@@ -195,6 +208,7 @@ class CardTable:
 		self.right_bottom = Pair(self.right_x, self.bottom_y)
 		self.card_slots = [] 
 		self.create()
+		self.card = Card(1, Card.Suits.DIAMONDS, self.card_slots[0])
 
 	def set_size(self, size):
 		self.w, self.h = self.size = size 
@@ -210,7 +224,6 @@ class CardTable:
 		min_width = (2 * self.half_w - 5 * self.mw) / 4
 		total_width = 4 * temp_cw + 5 * self.mw
 		while  total_width > self.w and not total_width <= min_width:
-			print('In while loop...')
 			self.card_height -= 10
 			temp_cw = self.card_height * CardTable.CARD_SIZE_RATIO
 			total_width = 4 * temp_cw + 5 * self.mw
@@ -228,12 +241,13 @@ class CardTable:
 
 	def recenter(self):
 		extra_w = (self.w - (4 * self.card_width  + 5 * self.mw)) / 2
+		extra_h = (self.h - (3 * self.card_height + 4 * self.mh)) / 2 
 		print(extra_w)
 		for i in range(4):
 			for j in range(3):
 				card_slot = self.card_slots[4 * j + i]
-				x, y = card_slot.rect.center
-				card_slot.set_position((x + extra_w, y))
+				x, y = card_slot.rect.top_left
+				card_slot.set_position((x + extra_w, y + extra_h))
 
 	def on_resize(self, position, size):
 		print(size)
@@ -246,8 +260,10 @@ class CardTable:
 		pass
 
 	def draw(self, surface):
-		for card_slot in self.card_slots:
-			card_slot.draw(surface)
+		for i, card_slot in enumerate(self.card_slots):
+			if not i == 2:
+				card_slot.draw(surface)
+		self.card.draw(surface)
 
 class App:
 	WINDOW_SIZE = (640, 400)
@@ -271,10 +287,10 @@ class App:
 			self.card_table.on_resize((0, 0), self.size)
 
 	def update(self):
-		pass
+		self.card_table.update()
 
 	def draw(self):
-		self.surface.fill(Color.BLACK)
+		self.surface.fill(Color.FOREST_GREEN)
 		self.card_table.draw(self.surface)
 		pygame.display.flip()
 

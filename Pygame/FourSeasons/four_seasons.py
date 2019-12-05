@@ -201,8 +201,10 @@ class Card:
 		self.suit_str = SUITS_STR[suit] 
 		self.suit_color = SUITS_COLOR[suit]
 		self.value = CARD_VALUES[self.card_str]		
-		self.font_info = FontInfo(font_size=70, font_color=self.suit_color)
-		self.card_text = RenderText(self.card_str, font_info=self.font_info)
+		self.card_font_info = FontInfo(font_size=40, font_color=self.suit_color)
+		self.suit_font_info = FontInfo(font_size=20, font_color=self.suit_color, font_name='segoeuiemoji')
+		self.card_text = RenderText(self.card_str, font_info=self.card_font_info)
+		self.suit_text = RenderText(self.suit_str, font_info=self.suit_font_info)
 		self.rect = Rect((0, 0), (0, 0), Color.ALICE_BLUE)
 
 	def on_click(self, event):
@@ -233,28 +235,34 @@ class Card:
 		self.rect.set_size((w - self.mw, h - self.mh))
 
 	def set_position(self, x, y, w, h):
-		self.card_text.set_position((x + w // 2,  y + h // 2))
+		cx, cy = (x + w // 2,  y + h // 2)
+		self.card_text.set_position((cx, cy))
+		self.suit_text.set_position((cx, cy + self.card_text.h))
 		self.rect.set_position((x + self.mw // 2, y + self.mh // 2)) 
 
 	def move(self, dx, dy):
 		w, h = self.rect.size  
 		self.rect.move(dx, dy)
 		self.card_text.move(dx, dy)
+		self.suit_text.move(dx, dy)
 
 	def update(self):
 		self.card_text.update()
+		self.suit_text.update()
 		self.rect.update()
 
 	def draw(self, surface):
 		self.rect.draw(surface)
 		self.card_text.draw(surface)
+		self.suit_text.draw(surface)
 
 class Deck:
 	def __init__(self, count=52):
+		self.count = count
 		self.deck = []
 
 	def create(self):
-		self.deck.append(Card('A', Card.DIAMONDS, 3))
+		pass
 
 	def shuffle(self):
 		pass

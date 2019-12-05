@@ -75,7 +75,7 @@ class AllFonts:
 	def create_font_objects(self):
 		for i, font in enumerate(self.font_names):
 			if check_font(font):
-				temp_text = Text('{0}: {1}'.format(i, font), font, 20)
+				temp_text = Text('{0}: {1}♢♡♤♧'.format(i, font), font, 20)
 				self.fonts.append(temp_text)
 
 	def get_fonts(self):

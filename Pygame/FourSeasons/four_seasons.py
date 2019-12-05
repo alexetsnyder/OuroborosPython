@@ -1,5 +1,6 @@
 #four_seasons.py
-import pygame
+import pygame, random
+from datetime import datetime
 from pygame import freetype
 
 #To Do:
@@ -83,6 +84,10 @@ class RenderText:
 	def move(self, dx, dy):
 		self.set_position((self.x + dx, self.y + dy))
 
+	def draw_at(self, surface, position):
+		x, y = position
+		self.font.render_to(surface, (int(x - self.w // 2), int(y - self.h // 2)), self.text_str, self.font_info.font_color)
+
 	def draw(self, surface):
 		self.font.render_to(surface, (int(self.x - self.w // 2), int(self.y - self.h // 2)), self.text_str, self.font_info.font_color)
 
@@ -107,6 +112,9 @@ class Rect:
 		self.top_right = Pair(self.right, self.top)
 		self.bottom_left = Pair(self.left, self.bottom)
 		self.bottom_right = Pair(self.right, self.bottom)
+
+	def set_color(self, color):
+		self.color = color
 
 	def set_size(self, size):
 		self.w, self.h = self.size = size 
@@ -136,10 +144,13 @@ class Rect:
 	def move(self, dx, dy):
 		self.set_position((self.left + dx, self.top + dy))
 
+	def draw_at(self, surface, position):
+		x, y = position
+		pygame.draw.rect(surface, self.color, pygame.Rect((int(x), int(y)), (int(self.w), int(self.h))), self.width)
+
 	def draw(self, surface):
 		x, y = self.top_left.pair
-		w, h = self.size 
-		pygame.draw.rect(surface, self.color, pygame.Rect((int(x), int(y)), (int(w), int(h))), self.width)
+		pygame.draw.rect(surface, self.color, pygame.Rect((int(x), int(y)), (int(self.w), int(self.h))), self.width)
 
 class Suits:
 	DIAMONDS = 0
@@ -147,11 +158,18 @@ class Suits:
 	SPADES   = 2
 	CLUBS    = 3
 
-SUITS_STR = {
+SUITS_CHAR = {
  	Suits.DIAMONDS : '♢',
  	Suits.HEARTS   : '♡',
  	Suits.SPADES   : '♤',
 	Suits.CLUBS    : '♧' 
+}
+
+SUITS_STR = {
+ 	Suits.DIAMONDS : 'Diamonds',
+ 	Suits.HEARTS   : 'Hearts',
+ 	Suits.SPADES   : 'Spades',
+	Suits.CLUBS    : 'Clubs' 
 }
 
 SUITS_COLOR = {
@@ -162,19 +180,6 @@ SUITS_COLOR = {
 }
 
 CARD_VALUES = {
-	 1  :  'A',
-	 2  :  '2',
-	 3  :  '3',
-	 4  :  '4',
-	 5  :  '5',
-	 6  :  '6',
-	 7  :  '7',
-	 8  :  '8',
-	 9  :  '9',
-	10  : '10',
-	11  :  'J',
-	12  :  'Q',
-	13  :  'K',
 	'A' :    1,
 	'2' :    2,
 	'3' :    3,
@@ -190,23 +195,49 @@ CARD_VALUES = {
 	'K' :   13
 }
 
+CARD_LETTERS = {
+	 1  :  'A',
+	 2  :  '2',
+	 3  :  '3',
+	 4  :  '4',
+	 5  :  '5',
+	 6  :  '6',
+	 7  :  '7',
+	 8  :  '8',
+	 9  :  '9',
+	10  : '10',
+	11  :  'J',
+	12  :  'Q',
+	13  :  'K',
+}
+
 class Card:
-	def __init__(self, card_str, suit, slot_index): 
+	SOURCE_FOLDER = 'Cards'
+	CARD_BACK_IMAGE_FILE = 'cardBack_red5.png'
+
+	def __init__(self, card_val, suit, slot_index, is_showing=False): 
 		self.mw, self.mh = (5, 5)
 		self.is_selected = False
 		self.mouse_pos = (0, 0)
 		self.suit = suit
+		self.value = card_val
 		self.slot_index = slot_index
-		self.card_str = card_str
+		self.card_str = CARD_LETTERS[self.value]
+		self.suit_char = SUITS_CHAR[suit]
 		self.suit_str = SUITS_STR[suit] 
 		self.suit_color = SUITS_COLOR[suit]
-		self.value = CARD_VALUES[self.card_str]		
-		self.card_font_info = FontInfo(font_size=40, font_color=self.suit_color)
-		self.suit_font_info = FontInfo(font_size=20, font_color=self.suit_color, font_name='segoeuiemoji')
-		self.card_text = RenderText(self.card_str, font_info=self.card_font_info)
-		self.suit_text = RenderText(self.suit_str, font_info=self.suit_font_info)
-		self.rect = Rect((0, 0), (0, 0), Color.ALICE_BLUE)
-
+		self.front_color = Color.ALICE_BLUE
+		self.back_color = Color.DEEP_SKY_BLUE
+		self.is_showing = is_showing
+		self.rect = Rect((0, 0), (0, 0), Color.TEAL_FELT)
+		self.card_back = pygame.image.load('{0}/{1}'.format(Card.SOURCE_FOLDER, Card.CARD_BACK_IMAGE_FILE)).convert()
+		self.card_front = pygame.image.load('{0}/card{1}{2}.png'.format(Card.SOURCE_FOLDER, self.suit_str, self.card_str)).convert() 	
+		# self.card_font_info = FontInfo(font_size=40, font_color=self.suit_color)
+		# self.suit_font_info = FontInfo(font_size=20, font_color=self.suit_color, font_name='segoeuiemoji')
+		# self.card_text = RenderText(self.card_str, font_info=self.card_font_info)
+		# self.suit_text = RenderText(self.suit_str, font_info=self.suit_font_info)
+		# self.border = Rect((0, 0), (0, 0), Color.BLACK, 2)
+		
 	def on_click(self, event):
 		if self.is_within(event.pos):
 			self.is_selected = True
@@ -224,7 +255,9 @@ class Card:
 			self.move(v.v0, v.v1)
 			self.mouse_pos = new_pos
 
-	def on_resize(self, x, y, w, h):	
+	def on_resize(self, slot):
+		x, y = slot.top_left
+		w, h = slot.size 	
 		self.set_size(w, h)
 		self.set_position(x, y, w, h)
 		
@@ -233,50 +266,89 @@ class Card:
 
 	def set_size(self, w, h):
 		self.rect.set_size((w - self.mw, h - self.mh))
+		# self.border.set_size((w - self.mw, h - self.mh))
+
+	def set_slot(self, slot_index):
+		self.slot_index = slot_index
 
 	def set_position(self, x, y, w, h):
-		cx, cy = (x + w // 2,  y + h // 2)
-		self.card_text.set_position((cx, cy))
-		self.suit_text.set_position((cx, cy + self.card_text.h))
 		self.rect.set_position((x + self.mw // 2, y + self.mh // 2)) 
+		# cx, cy = (x + w // 2,  y + h // 2)
+		# self.card_text.set_position((cx, cy))
+		# self.suit_text.set_position((cx, cy + self.card_text.h))
+		# self.border.set_position((x + self.mw // 2, y + self.mh // 2))
 
-	def move(self, dx, dy):
-		w, h = self.rect.size  
+	def move(self, dx, dy): 
 		self.rect.move(dx, dy)
-		self.card_text.move(dx, dy)
-		self.suit_text.move(dx, dy)
+		#self.border.move(dx, dy)
+		# self.card_text.move(dx, dy)
+		# self.suit_text.move(dx, dy)
 
 	def update(self):
-		self.card_text.update()
-		self.suit_text.update()
 		self.rect.update()
+		# self.card_text.update()
+		# self.suit_text.update()
+		# self.border.update()
 
 	def draw(self, surface):
-		self.rect.draw(surface)
-		self.card_text.draw(surface)
-		self.suit_text.draw(surface)
+		x, y = self.rect.top_left.pair 
+		w, h = self.rect.size 
+		card_image = None
+		if self.is_showing:
+			card_image = self.card_front
+		else:
+			card_image = self.card_back
+		surface.blit(pygame.transform.scale(card_image, (int(w), int(h))), (int(x), int(y)))
+		# self.rect.draw(surface)
+		# self.border.draw(surface)
+		# if self.is_showing:
+		# 	self.card_text.draw(surface)
+		# 	self.suit_text.draw(surface)
 
 class Deck:
-	def __init__(self, count=52):
-		self.count = count
+	def __init__(self):
+		self.seed = datetime.now()
+		random.seed(self.seed)
 		self.deck = []
+		self.active_cards = []
+		self.top_card = -1
+		self.create()
+
+	def on_resize(self, slots):
+		for i in self.active_cards:
+			self.deck[i].on_resize(slots[self.deck[i].slot_index])
 
 	def create(self):
-		pass
+		for suit in range(4):
+			for i in range(1, 14):
+				self.deck.append(Card(i, suit, CardTable.DECK_TILE))
 
 	def shuffle(self):
-		pass
+		random.shuffle(self.deck)
+
+	def new_deal(self):
+		self.deck[0].set_slot(CardTable.FOUNDATION_TILES[0])
+		self.deck[0].is_showing = True
+		for i in range(1, 6):
+			self.deck[i].set_slot(CardTable.TABLEAU_TILES[i - 1])
+			self.deck[i].is_showing = True
+		self.deck[6].set_slot(CardTable.DISCARD_TILE)
+		self.deck[6].is_showing = True
+		self.top_card = 7
+		self.active_cards += [i for i in range(8)]
 
 	def top(self):
-		pass
+		return self.deck[self.top_card]
 
 	def update(self):
-		pass
+		for i in self.active_cards:
+			self.deck[i].draw(surface) 
 
 	def draw(self, surface):
-		pass
+		for i in self.active_cards:
+			self.deck[i].draw(surface)
 
-class CardSlot:
+class CardTile:
 	def __init__(self, top_left, size):
 		self.x, self.y = self.top_left = top_left
 		self.w, self.h = self.size = size 
@@ -296,6 +368,18 @@ class CardSlot:
 	def draw(self, surface):
 		self.rect.draw(surface)
 
+class TableueTile (CardTile):
+	pass
+
+class DeckTile (CardTile):
+	pass
+
+class DiscardTile (CardTile):
+	pass
+
+class FoundationTile (CardTile):
+	pass
+
 class Pair:
 	def __init__(self, x, y):
 		self.x = x 
@@ -303,7 +387,12 @@ class Pair:
 		self.pair = (x, y)
 
 class CardTable:
-	CARD_SIZE_RATIO = 2.5 / 3.5
+	NON_TILE         = 2
+	DECK_TILE        = 0
+	DISCARD_TILE     = 1
+	TABLEAU_TILES    = [6, 4, 7, 10, 8]
+	FOUNDATION_TILES = [3, 5, 9, 11] 
+	CARD_SIZE_RATIO  = 2.5 / 3.5
 
 	def __init__(self, position, size):
 		x, y = position
@@ -320,7 +409,11 @@ class CardTable:
 		self.right_bottom = Pair(self.right_x, self.bottom_y)
 		self.card_slots = [] 
 		self.create()
-		self.card = Card('A', Suits.DIAMONDS, 0)
+		self.deck = Deck()
+		print('Seed: {0}'.format(self.deck.seed))
+		self.deck.shuffle()
+		self.deck.new_deal()
+		#self.card = Card('A', Suits.DIAMONDS, CardTable.DECK_TILE, False)
 
 	def get(self, index):
 		return self.card_slots[index]
@@ -351,7 +444,7 @@ class CardTable:
 			for j in range(3):
 				cx = self.left_x + i * (self.card_width + self.mw)
 				cy = self.top_y + j * (self.card_height + self.mh)
-				self.card_slots.append(CardSlot((cx, cy), self.card_size))
+				self.card_slots.append(CardTile((cx, cy), self.card_size))
 		self.recenter()
 
 	def recenter(self):
@@ -368,27 +461,31 @@ class CardTable:
 		self.set_position(position)
 		self.card_slots.clear()
 		self.create()
-		self.card.on_resize(*self.get(self.card.slot_index).top_left, *self.get(self.card.slot_index).size)
+		self.deck.on_resize(self.card_slots)
+		#self.card.on_resize(*self.get(self.card.slot_index).top_left, *self.get(self.card.slot_index).size)
 
 	def on_mouse_button_up(self, event):
-		max_area = 0
-		max_index = self.card.slot_index
-		for i, slot in self.slot_gen():
-			if self.card.rect.is_intersecting(slot.rect):
-				area = self.card.rect.intersecting(slot.rect).area()
-				if area > max_area:
-					max_area = area 
-					max_index = i  		
-		self.card.on_mouse_button_up(*self.get(max_index).top_left, max_index)
+		pass
+		# max_area = 0
+		# max_index = self.card.slot_index
+		# for i, slot in self.slot_gen():
+		# 	if self.card.rect.is_intersecting(slot.rect):
+		# 		area = self.card.rect.intersecting(slot.rect).area()
+		# 		if area > max_area:
+		# 			max_area = area 
+		# 			max_index = i  		
+		#self.card.on_mouse_button_up(*self.get(max_index).top_left, max_index)
 
 	def on_mouse_button_down(self, event):
-		self.card.on_click(event)
+		pass
+		#self.card.on_click(event)
 
 	def on_mouse_move(self, event):
-		self.card.on_move(event)
+		pass
+		#self.card.on_move(event)
 
 	def slot_gen(self):
-		return ((i, self.card_slots[i]) for i in range(len(self.card_slots)) if not i == 2)
+		return ((i, self.card_slots[i]) for i in range(len(self.card_slots)) if not i == CardTable.NON_TILE)
 
 	def update(self):
 		pass
@@ -396,7 +493,8 @@ class CardTable:
 	def draw(self, surface):
 		for i, slot in self.slot_gen():
 			slot.draw(surface)
-		self.card.draw(surface)
+		self.deck.draw(surface)
+		#self.card.draw(surface)
 
 class App:
 	WINDOW_SIZE = (640, 400)
@@ -414,6 +512,8 @@ class App:
 		elif event.type == pygame.KEYDOWN:
 			if event.key == pygame.K_ESCAPE:
 				self.running = False
+			elif event.key == pygame.K_f:
+				self.card_table.card.is_showing = not self.card_table.card.is_showing
 		elif event.type == pygame.VIDEORESIZE:
 			self.size = (event.w, event.h)
 			self.surface = pygame.display.set_mode(self.size, pygame.RESIZABLE)

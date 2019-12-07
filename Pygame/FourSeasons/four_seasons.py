@@ -35,9 +35,8 @@ class Card:
 		self.mouse_pos = event.pos 
 
 	def on_mouse_left_button_up(self, tile, new_tile_index):
-		x, y = tile.top_left
 		self.is_selected = False
-		self.set_position(x, y, self.rect.w, self.rect.h)
+		self.set_position(*tile.left_top, self.rect.w, self.rect.h)
 		self.tile_index = new_tile_index
 
 	def on_mouse_right_button_down(self):
@@ -55,7 +54,7 @@ class Card:
 
 	def put(self, tile):	
 		self.set_size(*tile.size)
-		self.set_position(*tile.top_left, *tile.size)
+		self.set_position(*tile.left_top, *tile.size)
 		
 	def is_within(self, position):
 		return self.rect.is_within(position)
@@ -76,7 +75,7 @@ class Card:
 		self.rect.update()
 
 	def draw(self, surface):
-		x, y = self.rect.top_left
+		x, y = self.rect.left_top
 		w, h = self.rect.size 
 		card_image = None
 		if self.is_showing:
@@ -90,8 +89,8 @@ def reverse(l):
 
 class Deck:
 	SUIT_COUNT  = 4
-	CARD_COUNT  = 13
 	DEALT_CARDS = 7
+	CARD_COUNT  = 13
 
 	def __init__(self):
 		self.seed = -1
@@ -135,9 +134,9 @@ class Deck:
 			max_area = 0
 			max_tile = tiles[selected_card.tile_index]
 			max_tile_index = selected_card.tile_index
-			for i, tile in [(i, tiles[i]) for i in range(len(tiles)) if not i == CardTable.NON_TILE]:
+			for i, tile in [(i, tiles[i]) for i in range(len(tiles)) if not i == BlankTile.INDEX]:
 				if selected_card.rect.is_intersecting(tile.rect):
-					area = selected_card.rect.intersecting(tile.rect).area()
+					area = selected_card.rect.intersecting(tile.rect).get_area()
 					if area > max_area:
 						max_area = area
 						max_tile = tile
@@ -151,7 +150,7 @@ class Deck:
 	def create(self):
 		for suit in range(Deck.SUIT_COUNT):
 			for i in range(1, Deck.CARD_COUNT + 1):
-				self.deck.append(Card(i, suit, CardTable.DECK_TILE))
+				self.deck.append(Card(i, suit, DeckTile.INDEX))
 
 	def shuffle(self):
 		self.shuffle_seed()
@@ -166,10 +165,10 @@ class Deck:
 	def new_deal(self, tiles):
 		self.reset()
 		self.shuffle()
-		self.draw_card(self.deck[0], CardTable.FOUNDATION_TILES[0])
+		self.draw_card(self.deck[0], FoundationTile.INDEXES[0])
 		for i in range(1, Deck.DEALT_CARDS - 1):
-			self.draw_card(self.deck[i], CardTable.TABLEAU_TILES[i - 1])
-		self.draw_card(self.deck[Deck.DEALT_CARDS - 1], CardTable.DISCARD_TILE)
+			self.draw_card(self.deck[i], TableueTile.INDEXES[i - 1])
+		self.draw_card(self.deck[Deck.DEALT_CARDS - 1], DiscardTile.INDEX)
 		self.top_card = Deck.DEALT_CARDS
 		self.active_cards += [i for i in range(Deck.DEALT_CARDS + 1)]
 		self.deal(tiles)
@@ -181,7 +180,7 @@ class Deck:
 	def reset(self):
 		self.active_cards.clear()
 		for card in self.deck:
-			card.set_tile(CardTable.DECK_TILE)
+			card.set_tile(DeckTile.INDEX)
 			card.is_showing = False
 
 	def top(self):
@@ -204,17 +203,28 @@ class Deck:
 			self.deck[i].draw(surface)
 
 class CardTile:
-	def __init__(self, top_left, size):
-		self.w, self.h = self.size = size 
-		self.left, self.top = self.top_left = top_left
-		self.rect = go.Rect(self.top_left, self.size, Color.BLACK, 1)
+	def __init__(self, left_top, size, border=2):
+		self.border = border
+		self._set_size(size)
+		self._set_position(left_top)
+		self.rect = go.Rect(self.left_top, self.size, Color.BLACK, self.border)
 
-	def set_position(self, top_left):
-		self.left, self.top = self.top_left = top_left
-		self.rect.set_position(self.top_left)
+	def _set_size(self, size):
+		self.w, self.h = self.size = size
+
+	def _set_position(self, left_top):
+		self.left, self.top = self.left_top = left_top
+		self.right, self.bottom =  self.right_bottom = (self.left + self.w, self.top + self.h)
+		self.left_bottom = (self.left, self.bottom)
+		self.right_top = (self.right, self.top)
+		self.x, self.y = self.center = (self.left + self.w // 2, self.right + self.right // 2)
+
+	def set_position(self, left_top):
+		self._set_position(left_top)
+		self.rect.set_position(self.left_top)
 
 	def set_size(self, size):
-		self.w, self.h = self.size = size 
+		self._set_size(size)
 		self.rect.set_size(self.size)
 
 	def update(self):
@@ -229,7 +239,7 @@ class DeckTile (CardTile):
 class DiscardTile (CardTile):
 	INDEX = 1
 
-class NonTile:
+class BlankTile:
 	INDEX = 2
 
 class TableueTile (CardTile):
@@ -241,13 +251,17 @@ class FoundationTile (CardTile):
 	INDEXES = [3, 5, 9, 11]
 	def __init__(self, tile_index):
 		self.tile_index = tile_index 
+		self.cards = []
+
+	def lay(self, card):
+		self.cards.append(card)
+		card.put(self)
+
+class Tiles:
+	def __init__(self):
+		self.tiles = [] 
 
 class CardTable:
-	NON_TILE         = 2
-	DECK_TILE        = 0
-	DISCARD_TILE     = 1
-	TABLEAU_TILES    = [6, 4, 7, 10, 8]
-	FOUNDATION_TILES = [3, 5, 9, 11] 
 	COLUMNS          = 4
 	ROWS             = 3 
 	CARD_SIZE_RATIO  = 2.5 / 3.5
@@ -306,7 +320,7 @@ class CardTable:
 		for i in range(CardTable.COLUMNS):
 			for j in range(CardTable.ROWS):
 				card_tile = self.card_tiles[4 * j + i]
-				x, y = card_tile.rect.top_left
+				x, y = card_tile.left_top
 				card_tile.set_position((x + extra_w, y + extra_h))
 
 	def on_resize(self, position, size):
@@ -329,7 +343,7 @@ class CardTable:
 		self.deck.on_mouse_move(event)
 
 	def tiles(self):
-		return [self.card_tiles[i] for i in range(len(self.card_tiles)) if not i == CardTable.NON_TILE]
+		return [self.card_tiles[i] for i in range(len(self.card_tiles)) if not i == BlankTile.INDEX]
 
 	def flip_cards(self):
 		self.deck.flip_cards()

@@ -15,6 +15,13 @@ class Color:
 	SAND          = ( 76,  70,  50)
 	SILVER 		  = (192, 192, 192)
 
+class MouseButton:
+	LEFT           = 1
+	MIDDLE         = 2
+	RIGHT          = 3
+	FORWARD_WHEEL  = 4 
+	BACKWARD_WHEEL = 5
+
 class Suits:
 	DIAMONDS = 0
 	HEARTS   = 1

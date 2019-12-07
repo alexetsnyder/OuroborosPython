@@ -30,9 +30,13 @@ class App:
 			self.surface = pygame.display.set_mode(self.size, pygame.RESIZABLE)
 			self.card_table.on_resize((0, 0), self.size)
 		elif event.type == pygame.MOUSEBUTTONUP:
-			self.card_table.on_mouse_button_up(event)
+			if event.button == MouseButton.LEFT:
+				self.card_table.on_mouse_left_button_up(event)
 		elif event.type == pygame.MOUSEBUTTONDOWN:
-			self.card_table.on_mouse_button_down(event)
+			if event.button == MouseButton.LEFT:
+				self.card_table.on_mouse_left_button_down(event)
+			elif event.button == MouseButton.RIGHT:
+				self.card_table.on_mouse_right_button_down(event)
 		elif event.type == pygame.MOUSEMOTION:
 			self.card_table.on_mouse_move(event)
 

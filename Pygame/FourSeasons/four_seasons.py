@@ -172,6 +172,7 @@ class Deck:
 		self.top_card = Deck.DEALT_CARDS
 		self.active_cards += [i for i in range(Deck.DEALT_CARDS + 1)]
 		self.deal(tiles)
+		return self
 
 	def draw_card(self, card, tile_index, is_showing=True):
 		card.set_tile(tile_index)
@@ -196,7 +197,7 @@ class Deck:
 
 	def update(self):
 		for i in self.active_cards:
-			self.deck[i].draw(surface) 
+			self.deck[i].update()
 
 	def draw(self, surface):
 		for i in self.active_cards:
@@ -227,6 +228,9 @@ class CardTile:
 		self._set_size(size)
 		self.rect.set_size(self.size)
 
+	def can_lay(self, card):
+		return False
+
 	def update(self):
 		self.rect.update()
 
@@ -247,6 +251,9 @@ class TableueTile (CardTile):
 	def __init__(self, tile_index):
 		self.tile_index = tile_index 
 
+	def can_lay(self, card):
+		return True
+
 class FoundationTile (CardTile):
 	INDEXES = [3, 5, 9, 11]
 	def __init__(self, tile_index):
@@ -257,27 +264,71 @@ class FoundationTile (CardTile):
 		self.cards.append(card)
 		card.put(self)
 
-class Tiles:
-	def __init__(self):
-		self.tiles = [] 
+	def can_lay(self, card):
+		return True
+
+class CardTiles:
+	ROWS       = 3 
+	COLS       = 4
+	SIZE_RATIO = 2.5 / 3.5
+
+	def __init__(self, left_top, table_size, margins):
+		self.card_tiles = [] 
+		self.mw, self.mh = margins
+		self.card_width, self.card_height = (0, 0)
+		self.fill(*left_top, *table_size)
+
+	def get_all(self, filter=(lambda x : True)):
+		return [tile for i, tile in enumerate(self.card_tiles) if filter(i)]
+
+	def find(self, index):
+		return self.card_tiles[index]
+
+	def assay(self, half_w, half_h):
+		self.card_height = 2 * (half_h - 2 * self.mh) / 3
+		temp_cw = self.card_height * CardTiles.SIZE_RATIO
+		min_width = (2 * half_w - 5 * self.mw) / 4
+		total_width = 4 * temp_cw + 5 * self.mw
+		while  total_width > (2 * half_w) and not total_width <= min_width:
+			self.card_height -= 10
+			temp_cw = self.card_height * CardTable.SIZE_RATIO
+			total_width = 4 * temp_cw + 5 * self.mw
+		self.card_width = temp_cw
+		self.card_size = (self.card_width, self.card_height)
+
+	def recenter(self, w, h):
+		extra_w = (w - (4 * self.card_width  + 5 * self.mw)) // 2
+		extra_h = (h - (3 * self.card_height + 4 * self.mh)) // 2 
+		for i in range(CardTiles.COLS):
+			for j in range(CardTiles.ROWS):
+				card_tile = self.card_tiles[4 * j + i]
+				x, y = card_tile.left_top
+				card_tile.set_position((x + extra_w, y + extra_h))
+
+	def fill(self, left, top, w, h):
+		self.assay(w // 2, h // 2)
+		for i in range(CardTiles.COLS):
+			for j in range(CardTiles.ROWS):
+				cx = left + i * (self.card_width + self.mw)
+				cy = top + j * (self.card_height + self.mh)
+				self.card_tiles.append(CardTile((cx, cy), self.card_size))
+		self.recenter(w, h)
+
+	def refill(self, left_top, new_size):
+		self.card_tiles.clear()
+		self.fill(*left_top, *new_size)
+
+	def update(self):
+		for tile in self.card_tiles:
+			tile.update()
 
 class CardTable:
-	COLUMNS          = 4
-	ROWS             = 3 
-	CARD_SIZE_RATIO  = 2.5 / 3.5
-
 	def __init__(self, position, size):
 		self.mw, self.mh = (15, 15)
-		self.card_width, self.card_height = (0, 0)
 		self.set_size(size)
 		self.set_position(position)
-		self.card_tiles = [] 
-		self.create()
-		self.deck = Deck()
-		self.deck.new_deal(self.card_tiles)
-
-	def get(self, index):
-		return self.card_tiles[index]
+		self.card_tiles = CardTiles(self.left_top, self.size, (self.mw, self.mh)) 
+		self.deck = Deck().new_deal(self.card_tiles.get_all())
 
 	def set_size(self, size):
 		self.w, self.h = self.size = size 
@@ -292,46 +343,15 @@ class CardTable:
 		self.right_top = (self.right, self.top)
 		self.left_bottom = (self.left, self.bottom)  
 		self.right_bottom = (self.right, self.bottom)
-
-	def assay(self):
-		self.card_height = 2 * (self.half_h - 2 * self.mh) / 3
-		temp_cw = self.card_height * CardTable.CARD_SIZE_RATIO
-		min_width = (2 * self.half_w - 5 * self.mw) / 4
-		total_width = 4 * temp_cw + 5 * self.mw
-		while  total_width > self.w and not total_width <= min_width:
-			self.card_height -= 10
-			temp_cw = self.card_height * CardTable.CARD_SIZE_RATIO
-			total_width = 4 * temp_cw + 5 * self.mw
-		self.card_width = temp_cw
-		self.card_size = (self.card_width, self.card_height)
 		
-	def create(self):
-		self.assay()
-		for i in range(CardTable.COLUMNS):
-			for j in range(CardTable.ROWS):
-				cx = self.left + i * (self.card_width + self.mw)
-				cy = self.top + j * (self.card_height + self.mh)
-				self.card_tiles.append(CardTile((cx, cy), self.card_size))
-		self.recenter()
-
-	def recenter(self):
-		extra_w = (self.w - (4 * self.card_width  + 5 * self.mw)) // 2
-		extra_h = (self.h - (3 * self.card_height + 4 * self.mh)) // 2 
-		for i in range(CardTable.COLUMNS):
-			for j in range(CardTable.ROWS):
-				card_tile = self.card_tiles[4 * j + i]
-				x, y = card_tile.left_top
-				card_tile.set_position((x + extra_w, y + extra_h))
-
 	def on_resize(self, position, size):
 		self.set_size(size)
 		self.set_position(position)
-		self.card_tiles.clear()
-		self.create()
-		self.deck.on_resize(self.card_tiles)
+		self.card_tiles.refill(position, size)
+		self.deck.on_resize(self.card_tiles.get_all())
 
 	def on_mouse_left_button_up(self, event):
-		self.deck.on_mouse_left_button_up(self.card_tiles)
+		self.deck.on_mouse_left_button_up(self.card_tiles.get_all())
 
 	def on_mouse_left_button_down(self, event):
 		self.deck.on_mouse_left_button_down(event)
@@ -342,19 +362,17 @@ class CardTable:
 	def on_mouse_move(self, event):
 		self.deck.on_mouse_move(event)
 
-	def tiles(self):
-		return [self.card_tiles[i] for i in range(len(self.card_tiles)) if not i == BlankTile.INDEX]
-
 	def flip_cards(self):
 		self.deck.flip_cards()
 
 	def new_shuffle(self):
-		self.deck.new_deal(self.card_tiles)
+		self.deck.new_deal(self.card_tiles.get_all())
 
 	def update(self):
-		pass
+		self.card_tiles.update()
+		self.deck.update()
 
 	def draw(self, surface):
-		for tile in self.tiles():
+		for tile in self.card_tiles.get_all(lambda x : not x == BlankTile.INDEX):
 			tile.draw(surface)
 		self.deck.draw(surface)

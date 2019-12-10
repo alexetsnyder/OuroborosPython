@@ -6,7 +6,7 @@ SAVE_FILE   = save_file.txt
 #Four Seasons or Vanishing Cross or Corner Card
 GAME_NAME           = Four Seasons
 CARD_TABLE_LEFT     = (0, 0)
-CARD_TABLE_SIZE     = @WINDOW_SIZE
+CARD_TABLE_SIZE     = >WINDOW_SIZE
 CARD_TABLE_MARGINS  = (15, 15)
 CARD_TABLE_CAN_GROW = True
 SOURCE_FOLDER       = Cards
@@ -18,9 +18,9 @@ SUIT_COUNT          = 4
 CARDS_PER_SUIT      = 13
 GRID_ROWS           = 3
 CARD_TILES          = {
-				        0 : DeckTile, 1 : DiscardTile, 2 : BlankTile, 3 : FoundationTile,
-                        4 : TableueTile, 5 : FoundationTile, 6 : TableueTile, 7 : TableueTile,
-                        8 : TableueTile, 9 : FoundationTile, 10 : TableueTile, 11 : FoundationTile
+				        0 : @DeckTile,    1 : @DiscardTile,     2 : @BlankTile,    3 : @FoundationTile,
+                        4 : @TableueTile, 5 : @FoundationTile,  6 : @TableueTile,  7 : @TableueTile,
+                        8 : @TableueTile, 9 : @FoundationTile, 10 : @TableueTile, 11 : @FoundationTile
                       }
 GRID_COLS           = 4
 DEALT_CARDS         = 7

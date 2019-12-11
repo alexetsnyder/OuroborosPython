@@ -274,7 +274,7 @@ class Config:
 						self.data[key] = self.converter.convert('{0} {1}'.format(value, more_lines))
 					self.converter.increment()
 			except Exception as ex:
-				print('Error: {0}'.format(ex))
+				print('Error: {0} Line: {1}'.format(ex, self.converter.line_number))
 				if self.try_get('DEBUG', False):
 					traceback.print_exc()
 

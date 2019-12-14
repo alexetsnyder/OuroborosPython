@@ -1,19 +1,20 @@
 #structs.py
 
 class Color:
-	WHITE  		  = (255, 255, 255)
-	BLACK  		  = (  0,   0,   0)
-	RED           = (255,   0,   0)
-	GREEN  		  = (  0, 255,   0)
-	SEA_GREEN     = ( 46, 139,  87)
-	FOREST_GREEN  = ( 13,  55,  13)
-	TEAL_FELT     = ( 20, 118,  98)
-	BLUE   		  = (  0,   0, 255)
-	ALICE_BLUE    = (240, 248, 255)
-	DEEP_SKY_BLUE = (  0, 191, 255)
-	YELLOW 		  = (255, 255,   0)
-	SAND          = ( 76,  70,  50)
-	SILVER 		  = (192, 192, 192)
+	WHITE  		  = (255, 255, 255, 255)
+	BLACK  		  = (  0,   0,   0, 255)
+	RED           = (255,   0,   0, 255)
+	GREEN  		  = (  0, 255,   0, 255)
+	SEA_GREEN     = ( 46, 139,  87, 255)
+	FOREST_GREEN  = ( 13,  55,  13, 255)
+	TEAL_FELT     = ( 20, 118,  98, 255)
+	BLUE   		  = (  0,   0, 255, 255)
+	ALICE_BLUE    = (240, 248, 255, 255)
+	DEEP_SKY_BLUE = (  0, 191, 255, 255)
+	YELLOW 		  = (255, 255,   0, 255)
+	SAND          = ( 76,  70,  50, 255)
+	SILVER 		  = (192, 192, 192, 255)
+	TRANSPARENT   = (  0,   0,   0,   0)
 
 class MouseButton:
 	LEFT           = 1
@@ -21,6 +22,13 @@ class MouseButton:
 	RIGHT          = 3
 	FORWARD_WHEEL  = 4 
 	BACKWARD_WHEEL = 5
+
+class CustomEvent:
+	CARD_TABLE_RESIZE = 0
+	TILE_CLICKED      = 1
+	CARD_LAYED        = 2
+	CARD_MOTION       = 3
+	NEW_DEAL          = 4
 
 class Suits:
 	DIAMONDS = 0

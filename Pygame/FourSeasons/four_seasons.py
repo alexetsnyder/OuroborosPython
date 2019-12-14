@@ -1,12 +1,8 @@
 #four_seasons.py
-import go, time
-import pygame, random
+import go, imp, events
+import pygame, random, time
 from pygame import freetype
 from structs import *
-
-#To Do:
-#1) Font Size Changes do to window size.
-#2) Increase margin size.
 
 class Card:
 	SOURCE_FOLDER = 'Cards'
@@ -26,35 +22,33 @@ class Card:
 		self.suit_color = SUITS_COLOR[suit]
 		self.front_color = Color.ALICE_BLUE
 		self.back_color = Color.DEEP_SKY_BLUE
-		self.rect = go.Rect((0, 0), (0, 0), Color.TEAL_FELT)
+		self.rect = go.Rect((0, 0), (0, 0), False)
 		self.card_back = pygame.image.load('{0}/{1}'.format(Card.SOURCE_FOLDER, Card.CARD_BACK_IMAGE_FILE)).convert()
 		self.card_front = pygame.image.load('{0}/card{1}{2}.png'.format(Card.SOURCE_FOLDER, self.suit_str, self.card_str)).convert()
-		
-	def on_mouse_left_button_down(self, event):
-		self.is_selected = True
-		self.mouse_pos = event.pos 
+		self.wire_events()
 
-	def on_mouse_left_button_up(self, tile, new_tile_index):
-		self.is_selected = False
-		self.set_position(*tile.left_top, self.rect.w, self.rect.h)
-		self.tile_index = new_tile_index
+	def wire_events(self):
+		imp.IMP().add_delegate(events.UserEvent(CustomEvent.CARD_MOTION).create(self.on_card_motion))
 
-	def on_mouse_right_button_down(self):
-		self.is_showing = not self.is_showing
-
-	def on_mouse_move(self, event):
+	def on_card_motion(self, event):
 		if self.is_selected:
 			new_pos = event.pos 
 			v = go.Vector(*new_pos) - go.Vector(*self.mouse_pos)
 			self.move(v.v0, v.v1)
 			self.mouse_pos = new_pos
 
-	def on_resize(self, tile):
-		self.put(tile)
+	def select(self, mouse_pos):
+		self.is_selected = True
+		self.mouse_pos = mouse_pos
 
-	def put(self, tile):	
+	def put(self, tile):
+		self.is_selected = False
+		self.tile_index = tile.index 	
 		self.set_size(*tile.size)
 		self.set_position(*tile.left_top, *tile.size)
+
+	def flip(self):
+		self.is_showing = not self.is_showing
 		
 	def is_within(self, position):
 		return self.rect.is_within(position)
@@ -98,33 +92,40 @@ class Deck:
 		self.deck = []
 		self.active_cards = []
 		self.create()
+		self.wire_events()
 
-	def shuffle_seed(self):
-		self.seed = time.time()
-		random.seed(self.seed)
+	def wire_events(self):
+		imp.IMP().add_delegate(events.UserEvent(CustomEvent.CARD_TABLE_RESIZE).create(self.on_resize))
+		imp.IMP().add_delegate(events.UserEvent(CustomEvent.CARD_LAYED).create(self.on_card_layed))
+		imp.IMP().add_delegate(events.UserEvent(CustomEvent.TILE_CLICKED).create(self.on_tile_clicked))
+		imp.IMP().add_delegate(events.MouseRightButtonUp().create(self.on_mouse_right_button_up))
+		imp.IMP().add_delegate(events.UserEvent(CustomEvent.NEW_DEAL).create(self.on_new_deal))
 
-	def on_resize(self, tiles):
+	def on_resize(self, event):
 		for i in self.active_cards:
 			card = self.deck[i]
-			card.on_resize(tiles[card.tile_index])
+			card.put(event.tiles[card.tile_index])
 
-	def on_mouse_left_button_down(self, event):
-		for i in reverse(self.active_cards):
+	def on_new_deal(self, event):
+		self.new_deal(event.tiles)
+
+	def on_mouse_right_button_up(self, event):
+		for i in self.active_cards:
 			card = self.deck[i]
 			if card.is_within(event.pos):
+				card.flip()
+				break
+
+	def on_tile_clicked(self, event):
+		for i in reverse(self.active_cards):
+			card = self.deck[i]
+			if card.tile_index == event.tile.index:
 				self.active_cards.remove(i)
 				self.active_cards.append(i)
-				card.on_mouse_left_button_down(event)
+				card.select(event.pos)
 				break
 
-	def on_mouse_right_button_down(self, event):
-		for i in reverse(self.active_cards):
-			card = self.deck[i]
-			if card.is_within(event.pos):
-				card.on_mouse_right_button_down()
-				break
-
-	def on_mouse_left_button_up(self, tiles):
+	def on_card_layed(self, event):
 		selected_card = None
 		for i in self.active_cards:
 			if self.deck[i].is_selected:
@@ -132,25 +133,23 @@ class Deck:
 				break
 		if not selected_card == None:
 			max_area = 0
-			max_tile = tiles[selected_card.tile_index]
-			max_tile_index = selected_card.tile_index
-			for i, tile in [(i, tiles[i]) for i in range(len(tiles)) if not i == BlankTile.INDEX]:
+			selected_tile = event.tiles[selected_card.tile_index]
+			for i, tile in [(i, event.tiles[i]) for i in range(len(event.tiles)) if not i == BlankTile.INDEX]:
 				if selected_card.rect.is_intersecting(tile.rect):
 					area = selected_card.rect.intersecting(tile.rect).get_area()
 					if area > max_area:
 						max_area = area
-						max_tile = tile
-						max_tile_index = i 
-			selected_card.on_mouse_left_button_up(max_tile, max_tile_index)
-
-	def on_mouse_move(self, event):
-		for i in self.active_cards:
-			self.deck[i].on_mouse_move(event)
+						selected_tile = tile
+			selected_card.put(selected_tile)
 
 	def create(self):
 		for suit in range(Deck.SUIT_COUNT):
 			for i in range(1, Deck.CARD_COUNT + 1):
 				self.deck.append(Card(i, suit, DeckTile.INDEX))
+
+	def shuffle_seed(self):
+		self.seed = time.time()
+		random.seed(self.seed)
 
 	def shuffle(self):
 		self.shuffle_seed()
@@ -187,11 +186,6 @@ class Deck:
 	def top(self):
 		return self.deck[self.top_card]
 
-	def flip_cards(self):
-		for i in self.active_cards:
-			card = self.deck[i]
-			card.is_showing = not card.is_showing
-
 	def print_seed(self):
 		print('Seed: {0}'.format(self.seed))
 
@@ -204,11 +198,13 @@ class Deck:
 			self.deck[i].draw(surface)
 
 class CardTile:
-	def __init__(self, left_top, size, border=2):
+	def __init__(self, left_top, size, index, border=2):
+		self.index = index 
 		self.border = border
 		self._set_size(size)
 		self._set_position(left_top)
-		self.rect = go.Rect(self.left_top, self.size, Color.BLACK, self.border)
+		self.rect = go.Rect(self.left_top, self.size, True, Color.BLACK, self.border)
+		self.text = go.RenderText(str(self.index)).center_on(self.center)
 
 	def _set_size(self, size):
 		self.w, self.h = self.size = size
@@ -218,15 +214,19 @@ class CardTile:
 		self.right, self.bottom =  self.right_bottom = (self.left + self.w, self.top + self.h)
 		self.left_bottom = (self.left, self.bottom)
 		self.right_top = (self.right, self.top)
-		self.x, self.y = self.center = (self.left + self.w // 2, self.right + self.right // 2)
+		self.x, self.y = self.center = (self.left + self.w // 2, self.top + self.h // 2)
 
 	def set_position(self, left_top):
 		self._set_position(left_top)
+		self.text.center_on(self.center)
 		self.rect.set_position(self.left_top)
 
 	def set_size(self, size):
 		self._set_size(size)
 		self.rect.set_size(self.size)
+
+	def is_within(self, position):
+		return self.rect.is_within(position)
 
 	def can_lay(self, card):
 		return False
@@ -236,6 +236,7 @@ class CardTile:
 
 	def draw(self, surface):
 		self.rect.draw(surface)
+		self.text.draw(surface)
 
 class DeckTile (CardTile):
 	INDEX = 0
@@ -278,7 +279,7 @@ class CardTiles:
 		self.card_width, self.card_height = (0, 0)
 		self.fill(*left_top, *table_size)
 
-	def get_all(self, filter=(lambda x : True)):
+	def find_all(self, filter=(lambda x : True)):
 		return [tile for i, tile in enumerate(self.card_tiles) if filter(i)]
 
 	def find(self, index):
@@ -307,11 +308,13 @@ class CardTiles:
 
 	def fill(self, left, top, w, h):
 		self.assay(w // 2, h // 2)
+		tile_index = 0
 		for i in range(CardTiles.COLS):
 			for j in range(CardTiles.ROWS):
 				cx = left + i * (self.card_width + self.mw)
 				cy = top + j * (self.card_height + self.mh)
-				self.card_tiles.append(CardTile((cx, cy), self.card_size))
+				self.card_tiles.append(CardTile((cx, cy), self.card_size, tile_index))
+				tile_index += 1
 		self.recenter(w, h)
 
 	def refill(self, left_top, new_size):
@@ -328,7 +331,8 @@ class CardTable:
 		self.set_size(size)
 		self.set_position(position)
 		self.card_tiles = CardTiles(self.left_top, self.size, (self.mw, self.mh)) 
-		self.deck = Deck().new_deal(self.card_tiles.get_all())
+		self.deck = Deck().new_deal(self.card_tiles.find_all())
+		self.wire_events()
 
 	def set_size(self, size):
 		self.w, self.h = self.size = size 
@@ -343,36 +347,43 @@ class CardTable:
 		self.right_top = (self.right, self.top)
 		self.left_bottom = (self.left, self.bottom)  
 		self.right_bottom = (self.right, self.bottom)
-		
-	def on_resize(self, position, size):
-		self.set_size(size)
-		self.set_position(position)
-		self.card_tiles.refill(position, size)
-		self.deck.on_resize(self.card_tiles.get_all())
 
-	def on_mouse_left_button_up(self, event):
-		self.deck.on_mouse_left_button_up(self.card_tiles.get_all())
+	def wire_events(self):
+		imp.IMP().add_delegate(events.WindowResizeEvent().create(self.on_resize))
+		imp.IMP().add_delegate(events.MouseLeftButtonDown().create(self.on_mouse_left_button_down))
+		imp.IMP().add_delegate(events.MouseLeftButtonUp().create(self.on_mouse_left_button_up))
+		imp.IMP().add_delegate(events.MouseMotion().create(self.on_mouse_motion))
+		imp.IMP().add_delegate(events.KeyDownEvent(pygame.K_r).create(self.on_new_deal))
+		
+	def on_resize(self, event):
+		self.set_size((event.w, event.h))
+		self.set_position((0, 0))
+		self.card_tiles.refill(self.left_top, self.size)
+		events.UserEvent(CustomEvent.CARD_TABLE_RESIZE).post(tiles=self.card_tiles.find_all())
+
+	def on_new_deal(self, event):
+		events.UserEvent(CustomEvent.NEW_DEAL).post(tiles=self.card_tiles.find_all())
 
 	def on_mouse_left_button_down(self, event):
-		self.deck.on_mouse_left_button_down(event)
+		for tile in self.card_tiles.find_all():
+			if tile.is_within(event.pos):
+				events.UserEvent(CustomEvent.TILE_CLICKED).post(pos=event.pos, tile=tile)
+				break
 
-	def on_mouse_right_button_down(self, event):
-		self.deck.on_mouse_right_button_down(event)
+	def on_mouse_left_button_up(self, event):
+		events.UserEvent(CustomEvent.CARD_LAYED).post(tiles=self.card_tiles.find_all())
 
-	def on_mouse_move(self, event):
-		self.deck.on_mouse_move(event)
-
-	def flip_cards(self):
-		self.deck.flip_cards()
-
-	def new_shuffle(self):
-		self.deck.new_deal(self.card_tiles.get_all())
+	def on_mouse_motion(self, event):
+		events.UserEvent(CustomEvent.CARD_MOTION).post(pos=event.pos)
 
 	def update(self):
 		self.card_tiles.update()
 		self.deck.update()
 
 	def draw(self, surface):
-		for tile in self.card_tiles.get_all(lambda x : not x == BlankTile.INDEX):
+		for tile in self.card_tiles.find_all(lambda x : not x == BlankTile.INDEX):
 			tile.draw(surface)
 		self.deck.draw(surface)
+
+if __name__=='__main__':
+	pass

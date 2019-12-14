@@ -69,7 +69,7 @@ class StringWrapper:
 			return True
 		elif self.string.lower() == 'false':
 			return False 
-		raise BoolTypeError()
+		raise BoolTypeError('Could not parse bool')
 
 	def get_strip_str(self, enclosed_chars):
 		return '{0}{1}'.format(WHITE_SPACE, enclosed_chars)

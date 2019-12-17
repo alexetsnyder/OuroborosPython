@@ -15,14 +15,15 @@ def singleton_decorator(cls):
 
 @singleton_decorator
 class IMP:
-	def __init__(self, debug=False):
+	def __init__(self):
 		self.running = True
-		self.debug = debug
+		self.debug = False
 		self.config = None
 		self.screen = None
 		self.event_dispatcher = None
 
-	def init(self, screen, config, event_dispatcher):
+	def init(self, screen, config, event_dispatcher, debug=False):
+		self.debug = debug
 		self.screen = screen
 		self.config = config
 		self.event_dispatcher = event_dispatcher

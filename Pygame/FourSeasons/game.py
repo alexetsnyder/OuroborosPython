@@ -30,12 +30,13 @@ class Game:
 		pygame.init()
 		self.elapsed = 1
 		self.previous = None
-		self.is_paused = True
+		self.is_paused = False
 		self.SEC_PER_FRAME = 1 / 60
 		self.card_table = fs.CardTable((0, 0), imp.IMP().screen.size)
 		self.frame_rate_func = lambda n : '{:.2f}'.format(n)
 		self.frame_rate_text = go.RenderText(self.frame_rate_func(0.00))
-		self.pause_text = go.RenderText('Paused', False, tuple(x // 2 for x in imp.IMP().screen.size), go.FontInfo(60, Color.BLUE))
+		self.pause_text = go.RenderText('Paused', False, (0, 0), go.FontInfo(60, Color.BLUE))
+		self.pause_text.center_on(tuple(x // 2 for x in imp.IMP().screen.size))
 		self.wire_events()	
 
 	def wire_events(self):
@@ -55,8 +56,8 @@ class Game:
 
 	def on_pause(self, event):
 		self.is_paused = not self.is_paused
-		self.pause_text.set_visibility(not self.is_paused)
-		self.frame_rate_text.set_visibility(self.is_paused)
+		self.pause_text.set_visibility(self.is_paused)
+		self.frame_rate_text.set_visibility(not self.is_paused)
 		if not self.is_paused:
 			self.previous = time.time()
 
@@ -109,6 +110,7 @@ if __name__=='__main__':
 	config = Config('data_file.txt')
 	event_dispatcher = events.EventDispatcher()
 	screen = Screen(config.try_get('WINDOW_SIZE', (640, 400)))
-	imp.IMP(True).init(screen, config, event_dispatcher)
+	debug = config.try_get('DEBUG', False)
+	imp.IMP().init(screen, config, event_dispatcher, debug)
 	game = Game()
 	game.run()

@@ -41,14 +41,25 @@ PYGAME_USEREVENT_NAME_TO_STRING = {
 	CustomEvent.NEW_DEAL          : 'NEW_DEAL'
 }
 
+PYGAME_MOUSE_BUTTON_TO_STRING = {
+	MouseButton.LEFT           : 'LEFT',
+	MouseButton.MIDDLE         : 'MIDDLE',
+	MouseButton.RIGHT          : 'RIGHT',
+	MouseButton.FORWARD_WHEEL  : 'FORWARD_WHEEL',
+	MouseButton.BACKWARD_WHEEL : 'BACKWARD_WHEEL'
+}
+
 def convert(type, value):
 	if type == 'type':
 		return PYGAME_EVENT_TYPE_TO_STRING[value]
 	elif type == 'key':
 		if value in PYGAME_KEY_TO_STRING:
 			return PYGAME_KEY_TO_STRING[value]
+	elif type == 'button':
+		return PYGAME_MOUSE_BUTTON_TO_STRING[value]
 	elif type == 'user_name':
 		return PYGAME_USEREVENT_NAME_TO_STRING[value]
+	print(type, value)
 
 class KeyValueListWrapper:
 	def __init__(self, d):
@@ -116,14 +127,15 @@ class Tree:
 					self.branches[value].del_leaf(leaf, **key_value_pairs.to_dict())
 
 class Delegate:
-	def __init__(self, name, **kargs):
+	def __init__(self, name, quell=False, **kargs):
 		self.name = name 
 		self.types = kargs
 		self.invocation_list = []
+		self.quell = quell
 
 	def __str__(self):
 		type_list_str = ', '.join(['{0}: {1}'.format(k, convert(k, v)) for k, v in self.types.items()])
-		invocation_list_str = ', '.join(str(x) for x in self.invocation_list)
+		invocation_list_str = ', '.join(x.__name__ for x in self.invocation_list)
 		return '{0} -> ({1}) -> [{2}]'.format(self.name, type_list_str, invocation_list_str)
 
 	def __add__(self, method):
@@ -138,7 +150,7 @@ class Delegate:
 		return self
 
 	def invoke(self, *args, **kargs):
-		if imp.IMP().debug:
+		if imp.IMP().debug and not self.quell:
 			print('Invoke -> {0}'.format(self.__str__()))
 		ret_list = []
 		for m in self.invocation_list:
@@ -157,8 +169,8 @@ class Event:
 		event = pygame.event.Event(self.types['type'], **self.without_type(), **kargs)
 		pygame.event.post(event)
 
-	def create(self, *args):
-		delegate = Delegate(self.name, **self.types)
+	def create(self, *args, quell=False):
+		delegate = Delegate(self.name, quell=quell, **self.types)
 		for arg in args:
 			delegate += arg 
 		return delegate
@@ -183,51 +195,51 @@ class MouseMotion (Event):
 	def __init__(self, **kargs):
 		super().__init__('Mouse Motion Event', pygame.MOUSEMOTION, **kargs)
 
-class MouseButtonUp (Event):
+class MouseButtonUpEvent (Event):
 	def __init__(self, name='Mouse Button Up Event', **kargs):
 		super().__init__(name, pygame.MOUSEBUTTONUP, **kargs)
 
-class MouseButtonDown (Event):
+class MouseButtonDownEvent (Event):
 	def __init__(self, name='Mouse Button Down Event', **kargs):
 		super().__init__(name, pygame.MOUSEBUTTONDOWN, **kargs)
 
-class MouseLeftButtonUp (MouseButtonUp):
+class MouseLeftButtonUpEvent (MouseButtonUpEvent):
 	def __init__(self, **kargs):
 		super().__init__('Mouse Left Button Up Event', button=MouseButton.LEFT, **kargs)
 
-class MouseLeftButtonDown (MouseButtonDown):
+class MouseLeftButtonDownEvent (MouseButtonDownEvent):
 	def __init__(self, **kargs):
 		super().__init__('Mouse Left Button Down Event', button=MouseButton.LEFT, **kargs)
 
-class MouseRightButtonUp (MouseButtonUp):
+class MouseRightButtonUpEvent (MouseButtonUpEvent):
 	def __init__(self, **kargs):
 		super().__init__('Mouse Right Button Up Event', button=MouseButton.RIGHT, **kargs)
 
-class MouseRightButtonDown (MouseButtonDown):
+class MouseRightButtonDownEvent (MouseButtonDownEvent):
 	def __init__(self, **kargs):
 		super().__init__('Mouse Right Button Down Event', button=MouseButton.RIGHT, **kargs)
 
-class MouseMiddleButtonUp (MouseButtonUp):
+class MouseMiddleButtonUpEvent (MouseButtonUpEvent):
 	def __init__(self, **kargs):
 		super().__init__('Mouse Middle Button Up Event', button=MouseButton.MIDDLE, **kargs)
 
-class MouseMiddleButtonDown (MouseButtonDown):
+class MouseMiddleButtonDownEvent (MouseButtonDownEvent):
 	def __init__(self, **kargs):
 		super().__init__('Mouse Middle Button Down Event', button=MouseButton.MIDDLE, **kargs)
 
-class MouseForwardWheelButtonUp (MouseButtonUp):
+class MouseForwardWheelButtonUpEvent (MouseButtonUpEvent):
 	def __init__(self, **kargs):
 		super().__init__('Mouse Forward Wheel Up Event', button=MouseButton.FORWARD_WHEEL, **kargs)
 
-class MouseForwardWheelButtonDown (MouseButtonDown):
+class MouseForwardWheelButtonDownEvent (MouseButtonDownEvent):
 	def __init__(self, **kargs):
 		super().__init__('Mouse Forward Wheel Down Event', button=MouseButton.FORWARD_WHEEL, **kargs)
 
-class MouseBackwardWheelButtonUp (MouseButtonUp):
+class MouseBackwardWheelButtonUpEvent (MouseButtonUpEvent):
 	def __init__(self, **kargs):
 		super().__init__('Mouse Back Wheel Up Event', button=MouseButton.BACKWARD_WHEEL, **kargs)
 
-class MouseBackwardWheelButtonDown (MouseButtonDown):
+class MouseBackwardWheelButtonDownEvent (MouseButtonDownEvent):
 	def __init__(self, **kargs):
 		super().__init__('Mouse Back Wheel Down Event', button=MouseButton.BACKWARD_WHEEL, **kargs)
 

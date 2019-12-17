@@ -57,7 +57,7 @@ def convert(type, value):
 			return PYGAME_KEY_TO_STRING[value]
 	elif type == 'button':
 		return PYGAME_MOUSE_BUTTON_TO_STRING[value]
-	elif type == 'user_name':
+	elif type == 'user_event':
 		return PYGAME_USEREVENT_NAME_TO_STRING[value]
 	print(type, value)
 
@@ -245,7 +245,7 @@ class MouseBackwardWheelButtonDownEvent (MouseButtonDownEvent):
 
 class UserEvent (Event):
 	def __init__(self, name, **kargs):
-		super().__init__('User Event', pygame.USEREVENT, user_name=name, **kargs)
+		super().__init__('User Event', pygame.USEREVENT, user_event=name, **kargs)
 
 class EventDispatcher:
 	def __init__(self):

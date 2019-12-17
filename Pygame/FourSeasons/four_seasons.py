@@ -48,9 +48,6 @@ class Card:
 		self.card_front = pygame.image.load('{0}/card{1}{2}.png'.format(Card.SOURCE_FOLDER, self.suit_str, self.card_str)).convert()
 		self.wire_events()
 
-	def __eq__(self, card):
-		return card.suit == self.suit and card.value == self.value
-
 	def wire_events(self):
 		imp.IMP().add_delegate(events.UserEvent(CustomEvent.CARD_MOTION).create(self.on_card_motion, quell=True))
 
@@ -74,6 +71,9 @@ class Card:
 
 	def flip(self):
 		self.is_showing = not self.is_showing
+
+	def equals(self, card):
+		return card.suit == self.suit and card.value == self.value
 		
 	def is_within(self, position):
 		return self.rect.is_within(position)
@@ -306,7 +306,7 @@ class FoundationTile (CardTile):
 			prv_card = self.cards[-1]
 			if card.suit == prv_card.suit and card.value - 1 == prv_card.value:
 				return True
-		elif self.first_card == card:
+		elif self.first_card.equals(card):
 			return True
 		return False
 

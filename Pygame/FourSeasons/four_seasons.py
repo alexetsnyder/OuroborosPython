@@ -538,6 +538,7 @@ class CardTable:
 
 	@pause_events_method
 	def on_redeal(self, event):
+		self.card_tiles.reset()
 		events.UserEvent(CustomEvent.RE_DEAL).post(tiles=self.card_tiles.find_all())
 
 	@pause_events_method

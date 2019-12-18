@@ -38,7 +38,9 @@ PYGAME_USEREVENT_NAME_TO_STRING = {
 	CustomEvent.TILE_CLICKED      : 'TILE_CLICKED',
 	CustomEvent.CARD_LAYED        : 'CARD_LAYED',
 	CustomEvent.CARD_MOTION       : 'CARD_MOTION',
-	CustomEvent.NEW_DEAL          : 'NEW_DEAL'
+	CustomEvent.NEW_DEAL          : 'NEW_DEAL',
+	CustomEvent.FIRST_CARD        : 'FIRST_CARD',
+	CustomEvent.DRAW_ONE          : 'DRAW_ONE'
 }
 
 PYGAME_MOUSE_BUTTON_TO_STRING = {

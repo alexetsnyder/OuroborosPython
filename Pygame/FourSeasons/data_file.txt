@@ -17,12 +17,14 @@ DECKS               = 1
 SUIT_COUNT          = 4
 CARDS_PER_SUIT      = 13
 GRID_ROWS           = 3
-CARD_TILES          = {
-				        0 : @DeckTile,    1 : @DiscardTile,     2 : @BlankTile,    3 : @FoundationTile,
-                        4 : @TableueTile, 5 : @FoundationTile,  6 : @TableueTile,  7 : @TableueTile,
-                        8 : @TableueTile, 9 : @FoundationTile, 10 : @TableueTile, 11 : @FoundationTile
-                      }
 GRID_COLS           = 4
+CARD_TILES          = {
+					     (0)               : @DeckTile, 
+					     (1)               : @DiscardTile,
+					     (2)               : @BlankTile,
+					    '(3, 5, 9, 11)'    : @FoundationTile,
+					    '(4, 6, 7, 8, 10)' : @TableueTile
+                      }
 DEALT_CARDS         = 7
 NEW_DEAL            = [3, 6, 4, 7, 10, 8, 1]
 

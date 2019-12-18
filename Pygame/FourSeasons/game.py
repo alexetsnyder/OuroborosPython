@@ -19,6 +19,9 @@ class Screen:
 	def set_size(self, size):
 		self.w, self.h = self.size = size 
 
+	def set_title(self, title):
+		pygame.display.set_caption(title)
+
 	def fill(self, color=Color.BLACK):
 		self.surface.fill(color)
 
@@ -32,17 +35,22 @@ class Game:
 		self.previous = None
 		self.is_paused = False
 		self.SEC_PER_FRAME = 1 / 60
+		self.title = imp.IMP().config.try_get('GAME_NAME', 'Default Name')
 		self.card_table = fs.CardTable((0, 0), imp.IMP().screen.size)
 		self.frame_rate_func = lambda n : '{:.2f}'.format(n)
 		self.frame_rate_text = go.RenderText(self.frame_rate_func(0.00))
 		self.pause_text = go.RenderText('Paused', False, (0, 0), go.FontInfo(60, Color.BLUE))
 		self.pause_text.center_on(tuple(x // 2 for x in imp.IMP().screen.size))
-		self.wire_events()	
+		self.wire_events()
+		self.set_title()	
 
 	def wire_events(self):
 		imp.IMP().add_delegate(events.QuitEvent().create(self.on_quit))
 		imp.IMP().add_delegate(events.WindowResizeEvent().create(self.on_resize))
 		imp.IMP().add_delegate(events.KeyDownEvent(pygame.K_ESCAPE).create(self.on_pause))
+
+	def set_title(self):
+		imp.IMP().screen.set_title(self.title)
 
 	def start(self):
 		self.is_paused = False

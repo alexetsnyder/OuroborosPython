@@ -41,10 +41,12 @@ class GeometryObject:
 		self.set_size(size)
 		self.set_color(color)
 		self.set_position(left_top)
-		self.is_visible = is_visible
+		self.set_visibility(is_visible)
 
 	def set_size(self, size):
 		self.w, self.h = self.size = size
+		self.surface = pygame.Surface(self.size)
+		self.clear(Color.TEAL_FELT)
 
 	def set_position(self, left_top):
 		self.left, self.top = self.left_top = left_top
@@ -64,6 +66,10 @@ class GeometryObject:
 		self.color = color 
 
 	def set_visibility(self, is_visible):
+		if not is_visible:
+			self.surface.set_alpha(0)
+		else:
+			self.surface.set_alpha(255)
 		self.is_visible = is_visible
 
 	def get_area(self):
@@ -71,12 +77,6 @@ class GeometryObject:
 
 	def get_size(self):
 		return self.size 
-
-	def get_color(self):
-		if self.is_visible:
-			return self.color 
-		else:
-			return Color.TRANSPARENT
 
 	def is_within(self, position):
 		x1, y1 = position
@@ -103,12 +103,17 @@ class GeometryObject:
 	def update(self):
 		pass
 
+	def clear(self, color):
+		self.surface.fill(color)
+
 	def draw_at(self, surface, position):
 		x, y = position
-		pygame.draw.rect(surface, self.get_color(), pygame.Rect((int(x), int(y)), (int(self.w), int(self.h))), self.width)
+		surface.blit(self.surface, (int(x), int(y)))
+		self.clear(Color.TEAL_FELT)
 
 	def draw(self, surface):
-		pygame.draw.rect(surface, self.get_color(), pygame.Rect((int(self.left), int(self.top)), (int(self.w), int(self.h))), self.width)
+		surface.blit(self.surface, pygame.Rect((int(self.left), int(self.top)), (int(self.w), int(self.h))))
+		self.clear(Color.TEAL_FELT)
 
 class FontInfo:
 	def __init__(self, font_size=20, font_color=Color.SILVER, font_name='lucidaconsole'):
@@ -126,9 +131,6 @@ class RenderText (GeometryObject):
 	def create_font(self):
 		return freetype.SysFont(self.font_info.font_name, self.font_info.font_size)
 
-	def set_position(self, left_top):
-		super().set_position(left_top)
-
 	def set_text(self, text_str):
 		self.text_str = text_str
 		super().set_size(self.get_size())
@@ -143,13 +145,22 @@ class RenderText (GeometryObject):
 	def get_font_size(self):
 		return self.font_info.font_size
 
-	def draw_at(self, surface, center):
-		x, y = center
-		self.font.render_to(surface, (int(self.left), int(self.top)), self.text_str, self.get_color())
+	def draw_at(self, surface, position):
+		self.font.render_to(self.surface, (0, 0), self.text_str, self.color)
+		super().draw_at(surface, position)
 
 	def draw(self, surface):
-		self.font.render_to(surface, (int(self.left), int(self.top)), self.text_str, self.get_color())
+		self.font.render_to(self.surface, (0, 0), self.text_str, self.color)
+		super().draw(surface)
 
 class Rect (GeometryObject):
 	def __init__(self, top_left, size, is_visible=True, color=Color.SILVER, width=0):
 		super().__init__(top_left, size, color, width, is_visible)
+
+	def draw_at(self, surface, position):
+		pygame.draw.rect(self.surface, self.color, pygame.Rect((0, 0), (int(self.w), int(self.h))), self.width)
+		super().draw_at(surface, position)
+
+	def draw(self, surface):
+		pygame.draw.rect(self.surface, self.color, pygame.Rect((0, 0), (int(self.w), int(self.h))), self.width)
+		super().draw(surface)

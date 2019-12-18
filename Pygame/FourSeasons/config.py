@@ -119,8 +119,8 @@ class ObjectContainer:
 	def set_parameters(self, parameters):
 		self.parameters = parameters
 
-	def instance(self, parent):
-		return getattr(parent, self.type)(*self.parameters) 
+	def instance(self, parent, *args, **kargs):
+		return getattr(parent, self.type)(*self.parameters, *args, **kargs) 
 
 class MathContainer:
 	MATH_OPERATORS = '-+/*'
@@ -232,7 +232,7 @@ class Convert:
 		if self.has_parameters(data_str):
 			para_index = data_str.index('<')
 			parameters = self.convert_tuple(data_str[para_index + 1:])
-		return ObjectContainer(data_str[1:para_index], parameters)
+		return ObjectContainer(data_str[1:para_index].string, parameters)
 
 	def convert_arithmatic(self, data_str):
 		return MathContainer(data_str)

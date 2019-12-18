@@ -31,16 +31,16 @@ class Screen:
 class Game:
 	def __init__(self):
 		pygame.init()
+		self.size = imp.IMP().screen.size
 		self.elapsed = 1
+		self.is_win = False
 		self.previous = None
 		self.is_paused = False
 		self.SEC_PER_FRAME = 1 / 60
 		self.title = imp.IMP().config.try_get('GAME_NAME', 'Default Name')
-		self.card_table = fs.CardTable((0, 0), imp.IMP().screen.size)
-		self.frame_rate_func = lambda n : '{:.2f}'.format(n)
-		self.frame_rate_text = go.RenderText(self.frame_rate_func(0.00))
-		self.pause_text = go.RenderText('Paused', False, (0, 0), go.FontInfo(60, Color.BLUE))
-		self.pause_text.center_on(tuple(x // 2 for x in imp.IMP().screen.size))
+		self.card_table = fs.CardTable((0, 0), self.size, margins=imp.IMP().config.try_get('CARD_TABLE_MARGINS', (0, 0)))
+		self.pause_text = go.RenderText('Paused!', font_info=go.FontInfo(60, Color.BLUE), is_visible=False)
+		self.pause_text.center_on(tuple(x // 2 for x in self.size))
 		self.wire_events()
 		self.set_title()	
 
@@ -48,6 +48,7 @@ class Game:
 		imp.IMP().add_delegate(events.QuitEvent().create(self.on_quit))
 		imp.IMP().add_delegate(events.WindowResizeEvent().create(self.on_resize))
 		imp.IMP().add_delegate(events.KeyDownEvent(pygame.K_ESCAPE).create(self.on_pause))
+		imp.IMP().add_delegate(events.UserEvent(CustomEvent.GAME_OVER).create(self.on_game_over))
 
 	def set_title(self):
 		imp.IMP().screen.set_title(self.title)
@@ -63,9 +64,22 @@ class Game:
 		self.pause_text.center_on((event.w // 2, event.h // 2))
 
 	def on_pause(self, event):
+		if self.is_paused and self.is_win:
+			self.is_win = False
+			self.pause_text.set_text('Paused!')
+			self.pause_text.center_on(self.center)
+			self.card_table.new_deal()
+		self.pause()
+
+	def on_game_over(self, event):
+		self.is_win = True
+		self.pause_text.set_text('Win!')
+		self.pause_text.center_on(self.center)
+		events.KeyDownEvent(pygame.K_ESCAPE).post()
+
+	def pause(self):
 		self.is_paused = not self.is_paused
 		self.pause_text.set_visibility(self.is_paused)
-		self.frame_rate_text.set_visibility(not self.is_paused)
 		if not self.is_paused:
 			self.previous = time.time()
 
@@ -78,27 +92,16 @@ class Game:
 		self.previous = current
 		
 	def update(self):
-		frame_rate_str = self.frame_rate_func(1 / self.elapsed)
-		self.frame_rate_text.set_text(frame_rate_str)
-		self.frame_rate_text.update()
 		self.card_table.update()
 
 	def draw(self):
 		imp.IMP().screen.fill(Color.TEAL_FELT)
-		self.frame_rate_text.draw(imp.IMP().screen.surface)
 		self.card_table.draw(imp.IMP().screen.surface)
 		self.pause_text.draw(imp.IMP().screen.surface)
 		imp.IMP().screen.flip()
 
 	def free(self):
 		pygame.quit()
-
-	def round_up(self, n):
-		int_n = int(n)
-		mod_10 = int_n % 10
-		if not mod_10 == 0:
-			int_n += (10 - mod_10)
-		return int_n
 
 	def run(self):
 		self.start()

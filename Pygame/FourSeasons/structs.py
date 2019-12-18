@@ -32,6 +32,8 @@ class CustomEvent:
 	NEW_DEAL          = 5
 	FIRST_CARD        = 6
 	DRAW_ONE          = 7
+	GAME_OVER         = 8
+	RE_DEAL           = 9
 
 class Suits:
 	DIAMONDS = 0

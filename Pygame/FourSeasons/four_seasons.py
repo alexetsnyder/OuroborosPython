@@ -5,11 +5,15 @@ from pygame import freetype
 from structs import *
 
 #ToDo:
-#1) Special cases for A and K.
-#2) Tableue laying logic wrong.
-#3) Objects have a certain background.
-#4) Reshuffle issue with extra cards, and continues decrement.
-#5) Extra number or one less card, and missing cards.
+#1) Objects have a certain background.
+#2) Win Condition Center.
+#3) Undo button.
+#4) Timer.
+#5) Score.
+#6) Update Background of Foundation Tiles.
+#7) On Resize Cards.
+#8) Recenter count down text when one digit.
+#9) Only winable hands.
 
 def class_pause_events_decorator(cls):
 	class ClassWrapper (cls):
@@ -35,6 +39,7 @@ def function_pause_events_decorator(func):
 class Card:
 	SOURCE_FOLDER = 'Cards'
 	CARD_BACK_IMAGE_FILE = 'cardBack_red5.png'
+	SUIT_FONT = 'segoeuisymbol'
 
 	def __init__(self, card_val, suit, tile_index, is_showing=False): 
 		self.mouse_pos = (0, 0)
@@ -48,9 +53,7 @@ class Card:
 		self.suit_char = SUITS_CHAR[suit]
 		self.suit_str = SUITS_STR[suit] 
 		self.suit_color = SUITS_COLOR[suit]
-		self.front_color = Color.ALICE_BLUE
-		self.back_color = Color.DEEP_SKY_BLUE
-		self.rect = go.Rect((0, 0), (0, 0), False)
+		self.rect = go.Rect((0, 0), (0, 0), is_visible=False)
 		self.card_back = pygame.image.load('{0}/{1}'.format(Card.SOURCE_FOLDER, Card.CARD_BACK_IMAGE_FILE)).convert()
 		self.card_front = pygame.image.load('{0}/card{1}{2}.png'.format(Card.SOURCE_FOLDER, self.suit_str, self.card_str)).convert()
 		self.wire_events()
@@ -137,13 +140,13 @@ class Deck:
 
 	def wire_events(self):
 		imp.IMP().add_delegate(events.UserEvent(CustomEvent.TILE_CLICKED).create(self.on_tile_clicked))
-		imp.IMP().add_delegate(events.MouseRightButtonUpEvent().create(self.on_mouse_right_button_up))
 		imp.IMP().add_delegate(events.UserEvent(CustomEvent.NEW_DEAL).create(self.on_new_deal))
+		imp.IMP().add_delegate(events.UserEvent(CustomEvent.RE_DEAL).create(self.on_redeal))
 		imp.IMP().add_delegate(events.UserEvent(CustomEvent.DRAW_ONE).create(self.on_draw_one))
 
 	@function_pause_events_decorator
 	def on_draw_one(self, event):
-		if len(self.active_cards) <= Deck.SUIT_COUNT * Deck.CARD_COUNT:
+		if len(self.active_cards) < Deck.SUIT_COUNT * Deck.CARD_COUNT:
 			next_index = len(self.active_cards)
 			self.active_cards.append(next_index)
 			next_card = self.deck[next_index]
@@ -154,12 +157,8 @@ class Deck:
 		self.new_deal(event.tiles)
 
 	@function_pause_events_decorator
-	def on_mouse_right_button_up(self, event):
-		for i in self.active_cards:
-			card = self.deck[i]
-			if card.is_within(event.pos):
-				card.flip()
-				break
+	def on_redeal(self, event):
+		self.redeal(event.tiles)
 
 	@function_pause_events_decorator
 	def on_tile_clicked(self, event):
@@ -185,9 +184,15 @@ class Deck:
 		self.print_seed()
 		random.shuffle(self.deck)
 
+	def redeal(self, tiles):
+		return self.deal(tiles)
+
 	def new_deal(self, tiles):
-		self.reset()
 		self.shuffle()
+		return self.deal(tiles)
+
+	def deal(self, tiles):
+		self.reset()
 		deck_tile = tiles[DeckTile.INDEX]
 		deck_tile.reset()
 		self.draw_card(self.deck[0], tiles[FoundationTile.INDEXES[0]], deck_tile)
@@ -195,7 +200,7 @@ class Deck:
 		for i in range(1, Deck.DEALT_CARDS - 1):
 			self.draw_card(self.deck[i], tiles[TableueTile.INDEXES[i - 1]], deck_tile)
 		self.draw_card(self.deck[Deck.DEALT_CARDS - 1], tiles[DiscardTile.INDEX], deck_tile)
-		self.active_cards += [i for i in range(Deck.DEALT_CARDS + 1)]
+		self.active_cards += [i for i in range(Deck.DEALT_CARDS)]
 		return self
 
 	def draw_card(self, card, tile, deck_tile):
@@ -219,38 +224,27 @@ class Deck:
 		for i in self.active_cards:
 			self.deck[i].draw(surface)
 
+@go.plottable_decorator
 @class_pause_events_decorator
 class CardTile:
-	def __init__(self, left_top, size, index, is_visible=True, border=2):
+	def __init__(self, index, is_visible=True, border=2):
 		self.cards = []
 		self.index = index 
 		self.border = border
-		self._set_size(size)
-		self._set_position(left_top)
-		self.rect = go.Rect(self.left_top, self.size, is_visible, Color.BLACK, self.border)
+		self.rect = go.Rect(self.left_top, self.size, width=self.border, color=Color.BLACK, is_visible=is_visible)
 		self.text = go.RenderText(str(self.index)).center_on(self.center)
 
 	def __str__(self):
-		return 'i : {} -> [{}]'.format(self.index, ','.join([str(card) for card in self.cards]))
-
-	def _set_size(self, size):
-		self.w, self.h = self.size = size
-
-	def _set_position(self, left_top):
-		self.left, self.top = self.left_top = left_top
-		self.right, self.bottom =  self.right_bottom = (self.left + self.w, self.top + self.h)
-		self.left_bottom = (self.left, self.bottom)
-		self.right_top = (self.right, self.top)
-		self.x, self.y = self.center = (self.left + self.w // 2, self.top + self.h // 2)
-
-	def set_position(self, left_top):
-		self._set_position(left_top)
-		self.text.center_on(self.center)
-		self.rect.set_position(self.left_top)
+		return '{} ∋ ({})'.format(self.index, ', '.join([str(card) for card in self.cards]))
 
 	def set_size(self, size):
-		self._set_size(size)
-		self.rect.set_size(self.size)
+		if hasattr(self, 'rect'):
+			self.rect.set_size(self.size)
+
+	def set_position(self, left_top):
+		if hasattr(self, 'text'):
+			self.text.center_on(self.center)
+			self.rect.set_position(self.left_top)
 
 	def is_within(self, position):
 		return self.rect.is_within(position)
@@ -280,9 +274,9 @@ class DeckTile (CardTile):
 
 	def __init__(self, *args, **kargs):
 		super().__init__(*args, **kargs)
-		self.card_back = pygame.image.load('{0}/{1}'.format(Card.SOURCE_FOLDER, Card.CARD_BACK_IMAGE_FILE)).convert()
 		self.deck_count = 52
 		self.remaining_text = go.RenderText('{}'.format(self.deck_count)).center_on(self.center)
+		self.card_back = pygame.image.load('{0}/{1}'.format(Card.SOURCE_FOLDER, Card.CARD_BACK_IMAGE_FILE)).convert()
 		self.wire_events()
 
 	def wire_events(self):
@@ -294,7 +288,8 @@ class DeckTile (CardTile):
 
 	def set_position(self, left_top):
 		super().set_position(left_top)
-		self.remaining_text.center_on(self.center)
+		if hasattr(self, 'remaining_text'):
+			self.remaining_text.center_on(self.center)
 
 	def update_text(self):
 		self.remaining_text.set_text('{}'.format(self.deck_count))
@@ -307,6 +302,7 @@ class DeckTile (CardTile):
 		if self.deck_count > 0:
 			self.deck_count -= 1
 			self.update_text()
+			self.remaining_text.center_on(self.center)
 
 	def draw(self, surface):
 		super().draw(surface)
@@ -334,9 +330,17 @@ class TableueTile (CardTile):
 
 class FoundationTile (CardTile):
 	INDEXES = [3, 5, 9, 11]
+
 	def __init__(self, *args, **kargs):
 		super().__init__(*args, **kargs) 
 		self.first_card = None
+		self.font_size = 30
+		self.foundation_text = go.RenderText('', is_visible=False)
+		self.suits_list = [Suits.HEARTS, Suits.CLUBS, Suits.SPADES, Suits.DIAMONDS]
+		self.foundation_suits = []
+		for suit in self.suits_list:
+			font_info = go.FontInfo(font_size=self.font_size, font_color=SUITS_COLOR[suit], font_name=Card.SUIT_FONT) 
+			self.foundation_suits.append(go.RenderText(SUITS_CHAR[suit], font_info=font_info, is_visible=False))
 		self.wire_events()
 
 	def wire_events(self):
@@ -344,7 +348,32 @@ class FoundationTile (CardTile):
 
 	@function_pause_events_decorator
 	def on_first_card(self, event):
-		self.first_card = event.card
+		card = event.card
+		font_info = go.FontInfo(font_size=self.font_size, font_name=Card.SUIT_FONT, font_color=card.suit_color)
+		self.foundation_text.set_font_info(font_info)
+		self.foundation_text.set_text(card.card_str)
+		self.foundation_text.center_on((self.x, self.y - 10))
+		self.foundation_text.set_visibility(True)
+		t_w = 0
+		for suit_text in self.foundation_suits[:2]:
+			t_w += suit_text.w 
+		b_w = 0
+		for suit_text in self.foundation_suits[2:]:
+			b_w += suit_text.w 
+		x, y = self.x - t_w // 4, self.y + self.foundation_text.h - 10
+		for suit_text in self.foundation_suits[:2]:
+			suit_text.center_on((x, y))
+			suit_text.set_visibility(True)
+			x += suit_text.w 
+		x, y = self.x - b_w // 4, y + self.foundation_suits[0].h + 2
+		for i, suit_text in enumerate(self.foundation_suits[2:]):
+			if i == 0:
+				suit_text.center_on((x, y - 2))
+			else:
+				suit_text.center_on((x, y))
+			suit_text.set_visibility(True)
+			x += suit_text.w 
+		self.first_card = card
 
 	def can_lay(self, card):
 		if any(self.cards):
@@ -355,8 +384,14 @@ class FoundationTile (CardTile):
 			return True
 		return False
 
-	def complete(self):
+	def is_complete(self):
 		return len(self.cards) == Deck.CARD_COUNT
+
+	def draw(self, surface):
+		super().draw(surface)
+		self.foundation_text.draw(surface)
+		for suit_text in self.foundation_suits:
+			suit_text.draw(surface)
 
 @class_pause_events_decorator
 class CardTiles:
@@ -400,15 +435,21 @@ class CardTiles:
 						max_area = area
 						selected_tile = tile
 			original_tile.pop()
-			print(selected_tile)
 			if selected_tile.can_lay(selected_card):
+				print('{} -> {}'.format(selected_card, selected_tile))
 				selected_tile.lay(selected_card)
 			else:
+				print('{} -> {}'.format(selected_card, original_tile))
 				original_tile.lay(selected_card)
+			if self.check_win():
+				events.UserEvent(CustomEvent.GAME_OVER).post()
 
-	@function_pause_events_decorator
-	def on_resize(self, event):
-		pass
+	def check_win(self):
+		win = True
+		for i in FoundationTile.INDEXES:
+			if not self.card_tiles[i].is_complete():
+				win = False
+		return win 
 
 	def parse_tiles(self):
 		tile_dict = imp.IMP().config.try_get('CARD_TILES', {})
@@ -454,6 +495,10 @@ class CardTiles:
 		self.card_tiles.clear()
 		self.fill(*left_top, *new_size)
 
+	def reset(self):
+		for tile in self.card_tiles:
+			tile.cards.clear()
+
 	def find(self, index):
 		return self.card_tiles[index]
 
@@ -468,35 +513,19 @@ class CardTiles:
 		for tile in self.card_tiles:
 			tile.draw(surface)
 
+@go.plottable_decorator
 @class_pause_events_decorator
 class CardTable:
-	def __init__(self, position, size):
-		self.mw, self.mh = imp.IMP().config.try_get('CARD_TABLE_MARGINS', (0, 0))
-		self.set_size(size)
-		self.set_position(position)
-		self.card_tiles = CardTiles(self.left_top, self.size, (self.mw, self.mh)) 
+	def __init__(self):
+		self.card_tiles = CardTiles(self.left_top, self.size, (self.m_w, self.m_h)) 
 		self.deck = Deck().new_deal(self.card_tiles.find_all())
-		self.wire_events()
-
-	def set_size(self, size):
-		self.w, self.h = self.size = size 
-		self.half_w, self.half_h = self.w / 2, self.h / 2 
-
-	def set_position(self, position):
-		x, y = position
-		self.origin = position
-		self.x, self.y = self.center = (x + self.half_w, y +  self.half_h)
-		self.left, self.right = self.mw + x, x + self.w - self.mw
-		self.top, self.bottom = self.mh + y, y + self.h - self.mh
-		self.left_top = (self.left, self.top)
-		self.right_top = (self.right, self.top)
-		self.left_bottom = (self.left, self.bottom)  
-		self.right_bottom = (self.right, self.bottom)
+		self.wire_events()		
 
 	def wire_events(self):
 		imp.IMP().add_delegate(events.WindowResizeEvent().create(self.on_resize))
 		imp.IMP().add_delegate(events.MouseMotion().create(self.on_mouse_motion, quell=True))
-		imp.IMP().add_delegate(events.KeyDownEvent(pygame.K_r).create(self.on_new_deal))
+		imp.IMP().add_delegate(events.KeyDownEvent(pygame.K_r).create(self.on_redeal))
+		imp.IMP().add_delegate(events.KeyDownEvent(pygame.K_n).create(self.on_new_deal))
 		
 	@function_pause_events_decorator
 	def on_resize(self, event):
@@ -506,12 +535,20 @@ class CardTable:
 		events.UserEvent(CustomEvent.CARD_TABLE_RESIZE).post(tiles=self.card_tiles.find_all())
 
 	@function_pause_events_decorator
+	def on_redeal(self, event):
+		events.UserEvent(CustomEvent.RE_DEAL).post(tiles=self.card_tiles.find_all())
+
+	@function_pause_events_decorator
 	def on_new_deal(self, event):
-		events.UserEvent(CustomEvent.NEW_DEAL).post(tiles=self.card_tiles.find_all())
+		self.new_deal()
 
 	@function_pause_events_decorator
 	def on_mouse_motion(self, event):
 		events.UserEvent(CustomEvent.CARD_MOTION).post(pos=event.pos)
+
+	def new_deal(self):
+		self.card_tiles.reset()
+		events.UserEvent(CustomEvent.NEW_DEAL).post(tiles=self.card_tiles.find_all())
 
 	def update(self):
 		self.card_tiles.update()

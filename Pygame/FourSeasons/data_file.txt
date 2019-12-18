@@ -1,5 +1,5 @@
 #DataFile
-DEBUG       = True
+DEBUG       = False
 WINDOW_SIZE = (640, 400)
 SAVE_FILE   = save_file.txt
 

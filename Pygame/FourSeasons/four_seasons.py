@@ -5,7 +5,6 @@ from pygame import freetype
 from structs import *
 
 #ToDo:
-#1) Objects have a certain background.
 #2) Win Condition Center.
 #3) Undo button.
 #4) Timer.
@@ -15,7 +14,10 @@ from structs import *
 #8) Recenter count down text when one digit.
 #9) Only winable hands.
 
-def class_pause_events_decorator(cls):
+def undo_enabled():
+	pass
+
+def pause_events_class(cls):
 	class ClassWrapper (cls):
 		def __init__(self, *args, **kargs):
 			self.is_paused = False
@@ -29,13 +31,13 @@ def class_pause_events_decorator(cls):
 			imp.IMP().add_delegate(events.KeyDownEvent(pygame.K_ESCAPE).create(self.on_pause))
 	return ClassWrapper
 
-def function_pause_events_decorator(func):
+def pause_events_method(func):
 	def func_wrapper(self, event):
 		if not self.is_paused:
 			func(self, event)
 	return func_wrapper
 
-@class_pause_events_decorator
+@pause_events_class
 class Card:
 	SOURCE_FOLDER = 'Cards'
 	CARD_BACK_IMAGE_FILE = 'cardBack_red5.png'
@@ -65,7 +67,7 @@ class Card:
 		imp.IMP().add_delegate(events.UserEvent(CustomEvent.CARD_MOTION).create(self.on_card_motion, quell=True))
 		imp.IMP().add_delegate(events.MouseLeftButtonUpEvent().create(self.on_mouse_left_button_up, quell=True))
 
-	@function_pause_events_decorator
+	@pause_events_method
 	def on_card_motion(self, event):
 		if self.is_selected:
 			new_pos = event.pos 
@@ -73,7 +75,7 @@ class Card:
 			self.move(v.v0, v.v1)
 			self.mouse_pos = new_pos
 
-	@function_pause_events_decorator
+	@pause_events_method
 	def on_mouse_left_button_up(self, event):
 		if self.is_selected:
 			events.UserEvent(CustomEvent.CARD_LAYED).post(card=self)
@@ -125,7 +127,7 @@ class Card:
 def reverse(l):
 	return [l[j] for j in range(len(l) - 1, -1, -1)]
 
-@class_pause_events_decorator
+@pause_events_class
 class Deck:
 	SUIT_COUNT  = 4
 	DEALT_CARDS = 7
@@ -144,7 +146,7 @@ class Deck:
 		imp.IMP().add_delegate(events.UserEvent(CustomEvent.RE_DEAL).create(self.on_redeal))
 		imp.IMP().add_delegate(events.UserEvent(CustomEvent.DRAW_ONE).create(self.on_draw_one))
 
-	@function_pause_events_decorator
+	@pause_events_method
 	def on_draw_one(self, event):
 		if len(self.active_cards) < Deck.SUIT_COUNT * Deck.CARD_COUNT:
 			next_index = len(self.active_cards)
@@ -152,15 +154,15 @@ class Deck:
 			next_card = self.deck[next_index]
 			event.discard_tile.lay(next_card)
 
-	@function_pause_events_decorator
+	@pause_events_method
 	def on_new_deal(self, event):
 		self.new_deal(event.tiles)
 
-	@function_pause_events_decorator
+	@pause_events_method
 	def on_redeal(self, event):
 		self.redeal(event.tiles)
 
-	@function_pause_events_decorator
+	@pause_events_method
 	def on_tile_clicked(self, event):
 		for i in reverse(self.active_cards):
 			card = self.deck[i]
@@ -224,8 +226,8 @@ class Deck:
 		for i in self.active_cards:
 			self.deck[i].draw(surface)
 
-@go.plottable_decorator
-@class_pause_events_decorator
+@go.plottable
+@pause_events_class
 class CardTile:
 	def __init__(self, index, is_visible=True, border=2):
 		self.cards = []
@@ -268,7 +270,7 @@ class CardTile:
 		if imp.IMP().debug:
 			self.text.draw(surface)
 
-@class_pause_events_decorator
+@pause_events_class
 class DeckTile (CardTile):
 	INDEX = 0
 
@@ -282,7 +284,7 @@ class DeckTile (CardTile):
 	def wire_events(self):
 		imp.IMP().add_delegate(events.UserEvent(CustomEvent.DRAW_ONE).create(self.on_draw_one))
 
-	@function_pause_events_decorator
+	@pause_events_method
 	def on_draw_one(self, event):
 		self.decrement()
 
@@ -346,7 +348,7 @@ class FoundationTile (CardTile):
 	def wire_events(self):
 		imp.IMP().add_delegate(events.UserEvent(CustomEvent.FIRST_CARD).create(self.on_first_card))
 
-	@function_pause_events_decorator
+	@pause_events_method
 	def on_first_card(self, event):
 		card = event.card
 		font_info = go.FontInfo(font_size=self.font_size, font_name=Card.SUIT_FONT, font_color=card.suit_color)
@@ -393,7 +395,7 @@ class FoundationTile (CardTile):
 		for suit_text in self.foundation_suits:
 			suit_text.draw(surface)
 
-@class_pause_events_decorator
+@pause_events_class
 class CardTiles:
 	def __init__(self, left_top, table_size, margins):
 		self.rows = imp.IMP().config.try_get('GRID_ROWS', 0)
@@ -411,7 +413,7 @@ class CardTiles:
 		imp.IMP().add_delegate(events.MouseLeftButtonDownEvent().create(self.on_mouse_left_button_down))
 		imp.IMP().add_delegate(events.UserEvent(CustomEvent.CARD_LAYED).create(self.on_card_layed))
 
-	@function_pause_events_decorator
+	@pause_events_method
 	def on_mouse_left_button_down(self, event):
 		for tile in self.find_all(lambda x : not x == BlankTile.INDEX and not x == DeckTile.INDEX):
 			if tile.is_within(event.pos):
@@ -422,7 +424,7 @@ class CardTiles:
 			if deck_tile.is_within(event.pos):
 				events.UserEvent(CustomEvent.DRAW_ONE).post(discard_tile=self.card_tiles[DiscardTile.INDEX])
 
-	@function_pause_events_decorator
+	@pause_events_method
 	def on_card_layed(self, event):
 		selected_card = event.card
 		if not selected_card == None:
@@ -513,8 +515,8 @@ class CardTiles:
 		for tile in self.card_tiles:
 			tile.draw(surface)
 
-@go.plottable_decorator
-@class_pause_events_decorator
+@go.plottable
+@pause_events_class
 class CardTable:
 	def __init__(self):
 		self.card_tiles = CardTiles(self.left_top, self.size, (self.m_w, self.m_h)) 
@@ -527,22 +529,22 @@ class CardTable:
 		imp.IMP().add_delegate(events.KeyDownEvent(pygame.K_r).create(self.on_redeal))
 		imp.IMP().add_delegate(events.KeyDownEvent(pygame.K_n).create(self.on_new_deal))
 		
-	@function_pause_events_decorator
+	@pause_events_method
 	def on_resize(self, event):
 		self.set_size((event.w, event.h))
 		self.set_position(self.origin)
 		self.card_tiles.refill(self.left_top, self.size)
 		events.UserEvent(CustomEvent.CARD_TABLE_RESIZE).post(tiles=self.card_tiles.find_all())
 
-	@function_pause_events_decorator
+	@pause_events_method
 	def on_redeal(self, event):
 		events.UserEvent(CustomEvent.RE_DEAL).post(tiles=self.card_tiles.find_all())
 
-	@function_pause_events_decorator
+	@pause_events_method
 	def on_new_deal(self, event):
 		self.new_deal()
 
-	@function_pause_events_decorator
+	@pause_events_method
 	def on_mouse_motion(self, event):
 		events.UserEvent(CustomEvent.CARD_MOTION).post(pos=event.pos)
 

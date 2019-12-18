@@ -42,7 +42,7 @@ class Vector:
 			new_vector.values[key] = self.values[key] - other.values[key]
 		return new_vector
 
-def plottable_decorator(cls):
+def plottable(cls):
 	class PlottableClass (cls):
 		def __init__(self, left_top, size, *args, margins=(0, 0), **kargs):
 			self.m_w, self.m_h = margins
@@ -83,7 +83,7 @@ def plottable_decorator(cls):
 			self.set_position((self.left + dx, self.top + dy))
 	return PlottableClass
 
-@plottable_decorator
+@plottable
 class BasicShape:
 	def __init__(self, color, is_visible=True):
 		self.set_color(color)

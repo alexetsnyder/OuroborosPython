@@ -1,6 +1,6 @@
 #game.py
 import pygame, time
-import events, imp, go
+import events, imp, go, trans
 import four_seasons as fs
 from config import Config
 from structs import *
@@ -37,10 +37,11 @@ class Game:
 		self.previous = None
 		self.is_paused = False
 		self.SEC_PER_FRAME = 1 / 60
+		self.center = tuple(x // 2 for x in self.size)
 		self.title = imp.IMP().config.try_get('GAME_NAME', 'Default Name')
 		self.card_table = fs.CardTable((0, 0), self.size, margins=imp.IMP().config.try_get('CARD_TABLE_MARGINS', (0, 0)))
 		self.pause_text = go.RenderText('Paused!', font_info=go.FontInfo(60, Color.BLUE), is_visible=False)
-		self.pause_text.center_on(tuple(x // 2 for x in self.size))
+		self.pause_text.center_on(self.center)
 		self.wire_events()
 		self.set_title()	
 
@@ -49,6 +50,8 @@ class Game:
 		imp.IMP().add_delegate(events.WindowResizeEvent().create(self.on_resize))
 		imp.IMP().add_delegate(events.KeyDownEvent(pygame.K_ESCAPE).create(self.on_pause))
 		imp.IMP().add_delegate(events.UserEvent(CustomEvent.GAME_OVER).create(self.on_game_over))
+		imp.IMP().add_delegate(events.KeyDownEvent(pygame.K_TAB).create(self.on_undo))
+		imp.IMP().add_delegate(events.KeyDownEvent(pygame.K_BACKSPACE).create(self.on_redo))
 
 	def set_title(self):
 		imp.IMP().screen.set_title(self.title)
@@ -61,7 +64,8 @@ class Game:
 		imp.IMP().quit()
 
 	def on_resize(self, event):
-		self.pause_text.center_on((event.w // 2, event.h // 2))
+		self.center = (event.w // 2, event.h // 2)
+		self.pause_text.center_on(self.center)
 
 	def on_pause(self, event):
 		if self.is_paused and self.is_win:
@@ -73,9 +77,16 @@ class Game:
 
 	def on_game_over(self, event):
 		self.is_win = True
-		self.pause_text.set_text('Win!')
+		imp.IMP().actions.clear()
+		self.pause_text.set_text('Winner!')
 		self.pause_text.center_on(self.center)
 		events.KeyDownEvent(pygame.K_ESCAPE).post()
+
+	def on_undo(self, event):
+		imp.IMP().actions.undo()
+
+	def on_redo(self, event):
+		imp.IMP().actions.redo()
 
 	def pause(self):
 		self.is_paused = not self.is_paused
@@ -118,10 +129,11 @@ class Game:
 			self.tick()	
 
 if __name__=='__main__':
+	actions = trans.UndoActions()
 	config = Config('data_file.txt')
 	event_dispatcher = events.EventDispatcher()
 	screen = Screen(config.try_get('WINDOW_SIZE', (640, 400)))
 	debug = config.try_get('DEBUG', False)
-	imp.IMP().init(screen, config, event_dispatcher, debug)
+	imp.IMP().init(screen, config, event_dispatcher, actions, debug)
 	game = Game()
 	game.run()

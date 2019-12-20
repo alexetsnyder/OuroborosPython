@@ -24,16 +24,16 @@ class MouseButton:
 	BACKWARD_WHEEL = 5
 
 class CustomEvent:
-	CARD_TABLE_RESIZE = 0
-	TILE_CLICKED      = 1
-	CARD_CLICKED      = 2
-	CARD_LAYED        = 3
-	CARD_MOTION       = 4
-	NEW_DEAL          = 5
-	FIRST_CARD        = 6
-	DRAW_ONE          = 7
-	GAME_OVER         = 8
-	RE_DEAL           = 9
+	CARD_TABLE_RESIZED = 0
+	TILE_CLICKED       = 1
+	CARD_CLICKED       = 2
+	CARD_LAYED         = 3
+	CARD_MOTION        = 4
+	NEW_DEAL           = 5
+	FIRST_CARD         = 6
+	DRAW_ONE           = 7
+	GAME_OVER          = 8
+	RE_DEAL            = 9
 
 class Suits:
 	DIAMONDS = 0

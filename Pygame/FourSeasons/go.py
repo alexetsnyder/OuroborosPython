@@ -2,6 +2,7 @@
 import pygame
 from pygame import freetype
 from structs import *
+from decs import *
 
 def round_up_10(n):
 	int_n = int(n)
@@ -41,47 +42,6 @@ class Vector:
 		for key in self.values:
 			new_vector.values[key] = self.values[key] - other.values[key]
 		return new_vector
-
-def plottable(cls):
-	class PlottableClass (cls):
-		def __init__(self, left_top, size, *args, margins=(0, 0), **kargs):
-			self.m_w, self.m_h = margins
-			self.set_size(size)
-			self.set_position(left_top)
-			super().__init__(*args, **kargs)
-
-		def set_size(self, size):
-			self.w, self.h = self.size = size
-			self.h_w, self.h_h = self.w // 2, self.h // 2
-			if hasattr(super(), 'set_size'):
-				super().set_size(size)
-
-		def set_position(self, left_top):
-			left, top = self.origin = left_top
-			self.left, self.right = left + self.m_w, left + self.w - self.m_w 
-			self.top, self.bottom = top + self.m_h, top + self.h - self.m_h 
-			self.left_top = (self.left, self.top)
-			self.left_bottom = (self.left, self.bottom)
-			self.right_top = (self.right, self.top)
-			self.right_bottom = (self.right, self.bottom) 
-			self.x, self.y = self.center = self.left + self.h_w, self.top + self.h_h
-			if hasattr(super(), 'set_position'):
-				super().set_position(left_top)
-
-		def get_size(self):
-			if hasattr(super(), 'get_size'):
-				return super().get_size()
-			return self.size 
-
-		def center_on(self, position):
-			x, y = position
-			w, h = self.get_size()
-			self.set_position((x - w // 2, y - h // 2))
-			return self
-
-		def move(self, dx, dy):
-			self.set_position((self.left + dx, self.top + dy))
-	return PlottableClass
 
 @plottable
 class BasicShape:
@@ -147,10 +107,12 @@ class Rect (BasicShape):
 
 	def draw_at(self, surface, position):
 		pygame.draw.rect(self.surface, self.color, pygame.Rect((0, 0), (int(self.w), int(self.h))), self.border_width)
+		self.set_visibility(self.is_visible)
 		super().draw_at(surface, position)
 
 	def draw(self, surface):
 		pygame.draw.rect(self.surface, self.color, pygame.Rect((0, 0), (int(self.w), int(self.h))), self.border_width)
+		self.set_visibility(self.is_visible)
 		super().draw(surface)
 
 class FontInfo:

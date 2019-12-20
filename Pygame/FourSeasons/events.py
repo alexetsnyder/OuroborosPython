@@ -34,15 +34,15 @@ PYGAME_KEY_TO_STRING = {
 }
 
 PYGAME_USEREVENT_NAME_TO_STRING = {
-	CustomEvent.CARD_TABLE_RESIZE : 'CARD_TABLE_RESIZE',
-	CustomEvent.TILE_CLICKED      : 'TILE_CLICKED',
-	CustomEvent.CARD_LAYED        : 'CARD_LAYED',
-	CustomEvent.CARD_MOTION       : 'CARD_MOTION',
-	CustomEvent.NEW_DEAL          : 'NEW_DEAL',
-	CustomEvent.FIRST_CARD        : 'FIRST_CARD',
-	CustomEvent.DRAW_ONE          : 'DRAW_ONE',
-	CustomEvent.GAME_OVER         : 'GAME_OVER',
-	CustomEvent.RE_DEAL           : 'RE_DEAL'
+	CustomEvent.CARD_TABLE_RESIZED : 'CARD_TABLE_RESIZED',
+	CustomEvent.TILE_CLICKED       : 'TILE_CLICKED',
+	CustomEvent.CARD_LAYED         : 'CARD_LAYED',
+	CustomEvent.CARD_MOTION        : 'CARD_MOTION',
+	CustomEvent.NEW_DEAL           : 'NEW_DEAL',
+	CustomEvent.FIRST_CARD         : 'FIRST_CARD',
+	CustomEvent.DRAW_ONE           : 'DRAW_ONE',
+	CustomEvent.GAME_OVER          : 'GAME_OVER',
+	CustomEvent.RE_DEAL            : 'RE_DEAL',
 }
 
 PYGAME_MOUSE_BUTTON_TO_STRING = {

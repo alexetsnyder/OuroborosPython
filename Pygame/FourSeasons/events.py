@@ -173,7 +173,7 @@ class Event:
 		event = pygame.event.Event(self.types['type'], **self.without_type(), **kargs)
 		pygame.event.post(event)
 
-	def create(self, *args, quell=False):
+	def listen(self, *args, quell=False):
 		delegate = Delegate(self.name, quell=quell, **self.types)
 		for arg in args:
 			delegate += arg 
@@ -183,7 +183,7 @@ class QuitEvent (Event):
 	def __init__(self, **kargs):
 		super().__init__('Quit', pygame.QUIT, **kargs)
 
-class WindowResizeEvent (Event):
+class WindowResizedEvent (Event):
 	def __init__(self, **kargs):
 		super().__init__('Window Resize Event', pygame.VIDEORESIZE, **kargs)
 
@@ -195,7 +195,7 @@ class KeyUpEvent (Event):
 	def __init__(self, key, **kargs):
 		super().__init__('Key Up Event', pygame.KEYUP, key=key, **kargs)
 
-class MouseMotion (Event):
+class MouseMotionEvent (Event):
 	def __init__(self, **kargs):
 		super().__init__('Mouse Motion Event', pygame.MOUSEMOTION, **kargs)
 

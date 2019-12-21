@@ -1,6 +1,16 @@
 #imp.py
-import pygame
-from decs import *
+
+def singleton(cls):	
+	class SingletonWrapper (cls):
+		def __init__(self):
+			self.cls = cls
+			self.instance = None
+
+		def __call__(self, *args, **kargs):
+			if self.instance == None:
+				self.instance = self.cls(*args, **kargs)
+			return self.instance
+	return SingletonWrapper()
 
 @singleton
 class IMP:

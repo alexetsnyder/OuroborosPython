@@ -42,7 +42,12 @@ PYGAME_USEREVENT_NAME_TO_STRING = {
 	CustomEvent.FIRST_CARD         : 'FIRST_CARD',
 	CustomEvent.DRAW_ONE           : 'DRAW_ONE',
 	CustomEvent.GAME_OVER          : 'GAME_OVER',
-	CustomEvent.RE_DEAL            : 'RE_DEAL',
+	CustomEvent.RESTART            : 'RESTART',
+	CustomEvent.PAUSE              : 'PAUSE',
+	CustomEvent.REDO_STACK_CLEARED : 'REDO_STACK_CLEARED',
+	CustomEvent.UNDO_ENABLED       : 'UNDO_ENABLED',
+	CustomEvent.REDO_ENABLED       : 'REDO_ENABLED',
+	CustomEvent.UNDO_STACK_CLEARED : 'UNDO_STACK_CLEARED'
 }
 
 PYGAME_MOUSE_BUTTON_TO_STRING = {
@@ -173,7 +178,7 @@ class Event:
 		event = pygame.event.Event(self.types['type'], **self.without_type(), **kargs)
 		pygame.event.post(event)
 
-	def create(self, *args, quell=False):
+	def listen(self, *args, quell=False):
 		delegate = Delegate(self.name, quell=quell, **self.types)
 		for arg in args:
 			delegate += arg 
@@ -183,7 +188,7 @@ class QuitEvent (Event):
 	def __init__(self, **kargs):
 		super().__init__('Quit', pygame.QUIT, **kargs)
 
-class WindowResizeEvent (Event):
+class WindowResizedEvent (Event):
 	def __init__(self, **kargs):
 		super().__init__('Window Resize Event', pygame.VIDEORESIZE, **kargs)
 
@@ -195,7 +200,7 @@ class KeyUpEvent (Event):
 	def __init__(self, key, **kargs):
 		super().__init__('Key Up Event', pygame.KEYUP, key=key, **kargs)
 
-class MouseMotion (Event):
+class MouseMotionEvent (Event):
 	def __init__(self, **kargs):
 		super().__init__('Mouse Motion Event', pygame.MOUSEMOTION, **kargs)
 

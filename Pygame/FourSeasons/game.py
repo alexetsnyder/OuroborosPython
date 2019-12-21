@@ -1,9 +1,18 @@
 #game.py
+import controls
 import pygame, time
-import events, imp, go, trans
+import events, imp, go
 import four_seasons as fs
-from config import Config
 from structs import *
+
+#ToDo:
+#1) Quick Click (click on a card and it is placed on a tile).
+#2) Timer.
+#3) Score.
+#4) Refactor foundation tile background.
+#5) Only winable hands.
+#6) One list to draw everything.
+#7) Center the game better.
 
 class Screen:
 	def __init__(self, size):
@@ -11,7 +20,7 @@ class Screen:
 		self.surface = pygame.display.set_mode(self.size, pygame.RESIZABLE)
 
 	def wire_events(self):
-		imp.IMP().add_delegate(events.WindowResizeEvent().create(self.on_resize))
+		imp.IMP().add_delegate(events.WindowResizedEvent().listen(self.on_resize))
 
 	def on_resize(self, event):
 		self.surface = pygame.display.set_mode((event.w, event.h), pygame.RESIZABLE)
@@ -31,7 +40,7 @@ class Screen:
 class Game:
 	def __init__(self):
 		pygame.init()
-		self.size = imp.IMP().screen.size
+		self.w, self.h = self.size = imp.IMP().screen.size
 		self.elapsed = 1
 		self.is_win = False
 		self.previous = None
@@ -42,16 +51,69 @@ class Game:
 		self.card_table = fs.CardTable((0, 0), self.size, margins=imp.IMP().config.try_get('CARD_TABLE_MARGINS', (0, 0)))
 		self.pause_text = go.RenderText('Paused!', font_info=go.FontInfo(60, Color.BLUE), is_visible=False)
 		self.pause_text.center_on(self.center)
+		self.create_side_bar()
 		self.wire_events()
 		self.set_title()	
 
 	def wire_events(self):
-		imp.IMP().add_delegate(events.QuitEvent().create(self.on_quit))
-		imp.IMP().add_delegate(events.WindowResizeEvent().create(self.on_resize))
-		imp.IMP().add_delegate(events.KeyDownEvent(pygame.K_ESCAPE).create(self.on_pause))
-		imp.IMP().add_delegate(events.UserEvent(CustomEvent.GAME_OVER).create(self.on_game_over))
-		imp.IMP().add_delegate(events.KeyDownEvent(pygame.K_TAB).create(self.on_undo))
-		imp.IMP().add_delegate(events.KeyDownEvent(pygame.K_BACKSPACE).create(self.on_redo))
+		imp.IMP().add_delegate(events.QuitEvent().listen(self.on_quit))
+		imp.IMP().add_delegate(events.WindowResizedEvent().listen(self.on_resize))
+		imp.IMP().add_delegate(events.KeyDownEvent(pygame.K_ESCAPE).listen(self.on_pause))
+		imp.IMP().add_delegate(events.UserEvent(CustomEvent.GAME_OVER).listen(self.on_game_over))
+		imp.IMP().add_delegate(events.UserEvent(CustomEvent.UNDO_STACK_CLEARED).listen(self.on_redo_undo_changed))
+		imp.IMP().add_delegate(events.UserEvent(CustomEvent.REDO_STACK_CLEARED).listen(self.on_redo_undo_changed))
+		imp.IMP().add_delegate(events.UserEvent(CustomEvent.UNDO_ENABLED).listen(self.on_redo_undo_changed))
+		imp.IMP().add_delegate(events.UserEvent(CustomEvent.REDO_ENABLED).listen(self.on_redo_undo_changed))
+
+	def create_side_bar(self):
+		buttons = []
+		self.restart_btn = controls.Button('Restart', self.restart)
+		self.new_game_btn = controls.Button('New Game', self.new_game)
+		self.undo_btn = controls.Button('Undo', self.undo)
+		self.redo_btn = controls.Button('Redo', self.redo)
+		self.pause_btn = controls.Button('Pause', self.on_pause)
+		self.restart_btn.set_enabled(False)
+		self.undo_btn.set_enabled(False)
+		self.redo_btn.set_enabled(False)
+		self.pause_btn.set_enabled(False)
+		buttons.append(self.restart_btn)
+		buttons.append(self.new_game_btn)
+		buttons.append(self.undo_btn)
+		buttons.append(self.redo_btn)
+		buttons.append(self.pause_btn)
+		self.side_bar = controls.SideBar(self.h, controls=buttons)
+
+	def new_game(self, event):
+		self.card_table.new_deal()
+		self.restart_btn.set_enabled(True)
+		self.pause_btn.set_enabled(True)
+
+	def restart(self, event):
+		self.card_table.restart()
+
+	def undo(self, event):
+		imp.IMP().actions.undo()
+		self.toggle_undo_redo()
+
+	def redo(self, event):
+		imp.IMP().actions.redo()
+		self.toggle_undo_redo()
+		
+	def toggle_undo_redo(self):
+		self.toggle_undo()
+		self.toggle_redo()
+
+	def toggle_undo(self):
+		is_enabled = False
+		if imp.IMP().actions.can_undo():
+			is_enabled = True
+		self.undo_btn.set_enabled(is_enabled)
+
+	def toggle_redo(self):
+		is_enabled = False
+		if imp.IMP().actions.can_redo():
+			is_enabled = True
+		self.redo_btn.set_enabled(is_enabled)
 
 	def set_title(self):
 		imp.IMP().screen.set_title(self.title)
@@ -73,6 +135,7 @@ class Game:
 			self.pause_text.set_text('Paused!')
 			self.pause_text.center_on(self.center)
 			self.card_table.new_deal()
+		print(self)
 		self.pause()
 
 	def on_game_over(self, event):
@@ -80,15 +143,13 @@ class Game:
 		imp.IMP().actions.clear()
 		self.pause_text.set_text('Winner!')
 		self.pause_text.center_on(self.center)
-		events.KeyDownEvent(pygame.K_ESCAPE).post()
+		events.KeyDownEvent(CustomEvent.PAUSE).post()
 
-	def on_undo(self, event):
-		imp.IMP().actions.undo()
-
-	def on_redo(self, event):
-		imp.IMP().actions.redo()
+	def on_redo_undo_changed(self, event):
+		self.toggle_undo_redo()
 
 	def pause(self):
+		events.UserEvent(CustomEvent.PAUSE).post()
 		self.is_paused = not self.is_paused
 		self.pause_text.set_visibility(self.is_paused)
 		if not self.is_paused:
@@ -101,15 +162,18 @@ class Game:
 			time.sleep(self.SEC_PER_FRAME - self.elapsed)
 			self.elapsed += self.SEC_PER_FRAME - self.elapsed
 		self.previous = current
-		
+
 	def update(self):
 		self.card_table.update()
+		self.side_bar.update()
 
 	def draw(self):
-		imp.IMP().screen.fill(Color.TEAL_FELT)
-		self.card_table.draw(imp.IMP().screen.surface)
-		self.pause_text.draw(imp.IMP().screen.surface)
-		imp.IMP().screen.flip()
+		screen = imp.IMP().screen 
+		screen.fill(Color.TEAL_FELT)
+		self.card_table.draw(screen.surface)
+		self.pause_text.draw(screen.surface)
+		self.side_bar.draw(screen.surface)
+		screen.flip()
 
 	def free(self):
 		pygame.quit()
@@ -129,11 +193,15 @@ class Game:
 			self.tick()	
 
 if __name__=='__main__':
-	actions = trans.UndoActions()
+	import acts
+	from config import Config 
+
+	actions = acts.UndoActions()
 	config = Config('data_file.txt')
 	event_dispatcher = events.EventDispatcher()
 	screen = Screen(config.try_get('WINDOW_SIZE', (640, 400)))
 	debug = config.try_get('DEBUG', False)
 	imp.IMP().init(screen, config, event_dispatcher, actions, debug)
+
 	game = Game()
 	game.run()

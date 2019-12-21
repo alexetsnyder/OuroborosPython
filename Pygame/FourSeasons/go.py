@@ -2,56 +2,22 @@
 import pygame
 from pygame import freetype
 from structs import *
-from decs import *
-
-def round_up_10(n):
-	int_n = int(n)
-	mod_10 = int_n % 10
-	if not mod_10 == 0:
-		int_n += (10 - mod_10)
-	return int_n
-
-class Vector:
-	def __init__(self, *args):
-		self.values = {self.get(i) : args[i] for i in range(len(args))}
-
-	def get(self, index):
-		return 'v{0}'.format(index)
-
-	def add_range(self, *args):
-		for i in range(len(kargs)):
-			self.values[self.get(i)] = args[i]
-
-	def length_sqr(self):
-		return sum([self.values[key] ** 2 for key in self.values])
-
-	def __str__(self):
-		return '({0})'.format(', '.join(['{0}: {1}'.format(key, self.values[key]) for key in self.values]))
-
-	def __getattr__(self, key):
-		return self.values[key]
-
-	def __getitem__(self, index):
-		return self.values[self.get(index)]
-
-	def __setitem__(self, index, item):
-		self.values[self.get(index)] = item
-
-	def __sub__(self, other):
-		new_vector = Vector()
-		for key in self.values:
-			new_vector.values[key] = self.values[key] - other.values[key]
-		return new_vector
+from geo import plottable, Vector
 
 @plottable
 class BasicShape:
-	def __init__(self, color, is_visible=True):
+	def __init__(self, left_top, size, color, is_visible=True):
+		self.surface = pygame.Surface(size)
 		self.set_color(color)
+		self.set_size(size)
+		self.set_position(left_top)
 		self.set_visibility(is_visible)
 
 	def set_size(self, size):
 		self.surface = pygame.Surface(size)
-		self.clear(Color.TEAL_FELT)
+
+	def set_position(self, left_top):
+		pass
 
 	def set_color(self, color):
 		self.color = color 
@@ -150,6 +116,7 @@ class RenderText (BasicShape):
 
 	def set_font_info(self, font_info):
 		self.font_info = font_info
+		self.color = font_info.font_color
 		self.font = self.create_font()
 
 	def get_size(self):

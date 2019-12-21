@@ -34,7 +34,12 @@ class CustomEvent:
 	FIRST_CARD         = 6
 	DRAW_ONE           = 7
 	GAME_OVER          = 8
-	RE_DEAL            = 9
+	RESTART            = 9
+	PAUSE              = 10
+	REDO_STACK_CLEARED = 11
+	UNDO_ENABLED       = 12
+	REDO_ENABLED       = 14
+	UNDO_STACK_CLEARED = 15
 
 class Suits:
 	DIAMONDS = 0

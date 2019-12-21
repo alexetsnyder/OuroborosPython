@@ -42,7 +42,12 @@ PYGAME_USEREVENT_NAME_TO_STRING = {
 	CustomEvent.FIRST_CARD         : 'FIRST_CARD',
 	CustomEvent.DRAW_ONE           : 'DRAW_ONE',
 	CustomEvent.GAME_OVER          : 'GAME_OVER',
-	CustomEvent.RE_DEAL            : 'RE_DEAL',
+	CustomEvent.RESTART            : 'RESTART',
+	CustomEvent.PAUSE              : 'PAUSE',
+	CustomEvent.REDO_STACK_CLEARED : 'REDO_STACK_CLEARED',
+	CustomEvent.UNDO_ENABLED       : 'UNDO_ENABLED',
+	CustomEvent.REDO_ENABLED       : 'REDO_ENABLED',
+	CustomEvent.UNDO_STACK_CLEARED : 'UNDO_STACK_CLEARED'
 }
 
 PYGAME_MOUSE_BUTTON_TO_STRING = {

@@ -1,9 +1,9 @@
 #four_seasons.py
-import go, imp, events, trans
+import go, imp, events, acts
 import pygame, random, time, sys
 from pygame import freetype
 from structs import *
-from geo import plottable
+from geo import plottable, Vector
 
 def pause_events_class(cls):
 	class ClassWrapper (cls):
@@ -16,7 +16,7 @@ def pause_events_class(cls):
 
 		def wire_events(self):
 			super().wire_events()
-			imp.IMP().add_delegate(events.KeyDownEvent(pygame.K_ESCAPE).listen(self.on_pause))
+			imp.IMP().add_delegate(events.UserEvent(CustomEvent.PAUSE).listen(self.on_pause))
 	return ClassWrapper
 
 def pause_events_method(func):
@@ -59,7 +59,7 @@ class Card:
 	def on_card_motion(self, event):
 		if self.is_selected:
 			new_pos = event.pos 
-			v = go.Vector(*new_pos) - go.Vector(*self.mouse_pos)
+			v = Vector(*new_pos) - Vector(*self.mouse_pos)
 			self.move(v.v0, v.v1)
 			self.mouse_pos = new_pos
 
@@ -131,7 +131,7 @@ class Deck:
 	def wire_events(self):
 		imp.IMP().add_delegate(events.UserEvent(CustomEvent.TILE_CLICKED).listen(self.on_tile_clicked))
 		imp.IMP().add_delegate(events.UserEvent(CustomEvent.NEW_DEAL).listen(self.on_new_deal))
-		imp.IMP().add_delegate(events.UserEvent(CustomEvent.RE_DEAL).listen(self.on_redeal))
+		imp.IMP().add_delegate(events.UserEvent(CustomEvent.RESTART).listen(self.on_restart))
 		imp.IMP().add_delegate(events.UserEvent(CustomEvent.DRAW_ONE).listen(self.on_draw_one))
 		imp.IMP().add_delegate(events.UserEvent(CustomEvent.CARD_TABLE_RESIZED).listen(self.on_card_table_resized))
 
@@ -146,7 +146,7 @@ class Deck:
 			event.deck_tile.update_text(str(remaining))
 			print('Action> Next Card: (#{} {}) and {} Left.'.format(next_index, next_card, remaining))
 			undo_args = (next_index, next_card, event.deck_tile, event.discard_tile)
-			undo_action = trans.UndoAction(self.undo_draw, self.redo_draw, *undo_args)
+			undo_action = acts.UndoAction(self.undo_draw, self.redo_draw, *undo_args)
 			imp.IMP().actions.post(undo_action)
 
 	@pause_events_method
@@ -154,8 +154,8 @@ class Deck:
 		self.new_deal(event.tiles)
 
 	@pause_events_method
-	def on_redeal(self, event):
-		self.redeal(event.tiles)
+	def on_restart(self, event):
+		self.restart(event.tiles)
 
 	@pause_events_method
 	def on_tile_clicked(self, event):
@@ -199,7 +199,7 @@ class Deck:
 		self.print_seed()
 		random.shuffle(self.deck)
 
-	def redeal(self, tiles):
+	def restart(self, tiles):
 		return self.deal(tiles)
 
 	def new_deal(self, tiles):
@@ -354,7 +354,8 @@ class FoundationTile (CardTile):
 			suit_text.set_visibility(True)
 
 	def on_card_table_resized(self, event):
-		self.update_foundation_text()
+		if not self.first_card == None:
+			self.update_foundation_text()
 
 	def update_foundation_text(self):
 		font_info = go.FontInfo(font_size=self.font_size, font_name=Card.SUIT_FONT, font_color=self.first_card.suit_color)
@@ -443,9 +444,10 @@ class CardTiles:
 			if selected_tile.can_lay(selected_card):
 				print('Action> {} -> {} -> {}'.format(original_tile.index, selected_card, selected_tile))
 				selected_tile.lay(selected_card)
-				undo_args = (original_tile, selected_tile, selected_card)
-				undo_action = trans.UndoAction(self.undo_card_layed, self.redo_card_layed, *undo_args)
-				imp.IMP().actions.post(undo_action)
+				if not selected_tile.index == original_tile.index:
+					undo_args = (original_tile, selected_tile, selected_card)
+					undo_action = acts.UndoAction(self.undo_card_layed, self.redo_card_layed, *undo_args)
+					imp.IMP().actions.post(undo_action)
 			else:
 				print('Action> {} <- {}'.format(original_tile, selected_card))
 				original_tile.lay(selected_card)
@@ -582,10 +584,10 @@ class CardTable:
 	def on_mouse_motion(self, event):
 		events.UserEvent(CustomEvent.CARD_MOTION).post(pos=event.pos)
 
-	def redeal(self):
+	def restart(self):
 		self.card_tiles.reset()
 		imp.IMP().actions.clear()
-		events.UserEvent(CustomEvent.RE_DEAL).post(tiles=self.card_tiles.find_all())
+		events.UserEvent(CustomEvent.RESTART).post(tiles=self.card_tiles.find_all())
 
 	def new_deal(self):
 		imp.IMP().actions.clear()

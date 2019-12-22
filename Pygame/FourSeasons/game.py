@@ -6,14 +6,16 @@ import four_seasons as fs
 from structs import *
 
 #ToDo:
-#1) Quick Click (click on a card and it is placed on a tile).
-#2) Timer.
-#3) Score.
-#4) Refactor foundation tile background.
-#5) Only winable hands.
-#6) One list to draw everything.
-#7) Center the game better.
-#8) At Zero cards text and deck picture disappear
+# 1) Quick Click (click on a card and it is placed on a tile).
+# 2) Timer.
+# 3) Score.
+# 4) Refactor foundation tile background.
+# 5) Only winable hands.
+# 6) One list to draw everything.
+# 7) Center the game better.
+# 8) At Zero cards text and deck picture disappear
+# 9) Debug Print.
+#10) Put data in data file.
 
 class Screen:
 	def __init__(self, size):
@@ -45,7 +47,7 @@ class Game:
 		self.elapsed = 1
 		self.is_win = False
 		self.previous = None
-		self.is_paused = False
+		self.is_paused = True
 		self.SEC_PER_FRAME = 1 / 60
 		self.center = tuple(x // 2 for x in self.size)
 		self.title = imp.IMP().config.try_get('GAME_NAME', 'Default Name')
@@ -122,7 +124,7 @@ class Game:
 		imp.IMP().screen.set_title(self.title)
 
 	def start(self):
-		self.is_paused = False
+		self.is_paused = True
 		self.previous = time.time()
 
 	def on_quit(self, event):
@@ -136,7 +138,6 @@ class Game:
 		self.pause()
 
 	def on_game_over(self, event):
-		self.is_win = True
 		imp.IMP().actions.clear()
 		self.pause_text.set_text('Winner!')
 		self.pause_text.center_on(self.center)
@@ -154,7 +155,6 @@ class Game:
 			self.previous = time.time()
 
 	def un_pause(self):
-		self.is_win = False
 		self.pause_text.set_text('Paused!')
 		self.pause_text.center_on(self.center)
 		if self.is_paused:

@@ -75,7 +75,9 @@ class SideBar (Control):
 		self.btn_show = Button('<<<', on_click=self.on_click_toggle_bar)
 		controls.insert(0, self.btn_show)
 		self.rect = go.Rect((0, 0), (0, 0), color=self.color)
-		super().__init__((0, 0), controls=controls, default_size=self.btn_show.size)
+		super().__init__((0, 0), controls=controls)
+		w, h = self.btn_show.size
+		self.set_default((w - self.mw, h))
 		self.wire_events()
 
 	def set_size(self, size):

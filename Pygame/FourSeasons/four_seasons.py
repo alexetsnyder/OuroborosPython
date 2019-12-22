@@ -8,7 +8,7 @@ from geo import plottable, Vector
 def pause_events_class(cls):
 	class ClassWrapper (cls):
 		def __init__(self, *args, **kargs):
-			self.is_paused = False
+			self.is_paused = True
 			super().__init__(*args, **kargs)
 
 		def on_pause(self, event):
@@ -149,11 +149,9 @@ class Deck:
 			undo_action = acts.UndoAction(self.undo_draw, self.redo_draw, *undo_args)
 			imp.IMP().actions.post(undo_action)
 
-	@pause_events_method
 	def on_new_deal(self, event):
 		self.new_deal(event.tiles)
 
-	@pause_events_method
 	def on_restart(self, event):
 		self.restart(event.tiles)
 
@@ -260,6 +258,10 @@ class CardTile:
 		self.text.center_on(self.center)
 		self.rect.set_position(self.left_top)
 
+	def set_index(self, index):
+		self.index = index
+		self.text.set_text(str(self.index))
+
 	def is_within(self, position):
 		return self.rect.is_within(position)
 
@@ -330,55 +332,58 @@ class FoundationTile (CardTile):
 	INDEXES = [3, 5, 9, 11]
 
 	def __init__(self, *args, **kargs):
+		self.foundation_suit_texts = []
 		super().__init__(*args, **kargs) 
 		self.first_card = None
 		self.font_size = 30
-		self.foundation_text = go.RenderText('', is_visible=False)
+		font_info = go.FontInfo(font_size=self.font_size, font_name=Card.SUIT_FONT, font_color=Color.BLACK)
+		self.card_value_text_top = go.RenderText('', is_visible=False, font_info=font_info)
+		self.card_value_text_bottom = go.RenderText('', is_visible=False, font_info=font_info) 
 		self.suits_list = [Suits.HEARTS, Suits.CLUBS, Suits.SPADES, Suits.DIAMONDS]
-		self.foundation_suits = []
+		self.creat_suit_emblem()
+		self.wire_events()
+
+	def set_position(self, left_top):
+		super().set_position(left_top)
+		self.postion_suit_emblem()
+
+	def creat_suit_emblem(self):
 		for suit in self.suits_list:
 			font_info = go.FontInfo(font_size=self.font_size, font_color=SUITS_COLOR[suit], font_name=Card.SUIT_FONT) 
-			self.foundation_suits.append(go.RenderText(SUITS_CHAR[suit], font_info=font_info, is_visible=False))
-		self.wire_events()
+			self.foundation_suit_texts.append(go.RenderText(SUITS_CHAR[suit], font_info=font_info))
+
+	def postion_suit_emblem(self):
+		center_signs = ((-1, -1), (1, -1), (-1, 1), (1, 1))
+		for i, suit_text in enumerate(self.foundation_suit_texts):
+			sign_x, sign_y = center_signs[i]
+			cx, cy = (self.x + sign_x * suit_text.w // 2, self.y + sign_y * suit_text.h // 2)
+			if i == 2:
+				cy += 2
+			elif i == 3:
+				cx, cy = (cx + 3, cy + 4)
+			suit_text.center_on((cx, cy))
 
 	def wire_events(self):
 		imp.IMP().add_delegate(events.UserEvent(CustomEvent.FIRST_CARD).listen(self.on_first_card))
 		imp.IMP().add_delegate(events.UserEvent(CustomEvent.CARD_TABLE_RESIZED).listen(self.on_card_table_resized))
 
-	@pause_events_method
 	def on_first_card(self, event):
 		self.first_card = event.card
 		self.update_foundation_text()
-		self.foundation_text.set_visibility(True)
-		for suit_text in self.foundation_suits:
-			suit_text.set_visibility(True)
+		self.card_value_text_top.set_visibility(True)
+		self.card_value_text_bottom.set_visibility(True)
 
 	def on_card_table_resized(self, event):
 		if not self.first_card == None:
 			self.update_foundation_text()
 
 	def update_foundation_text(self):
-		font_info = go.FontInfo(font_size=self.font_size, font_name=Card.SUIT_FONT, font_color=self.first_card.suit_color)
-		self.foundation_text.set_font_info(font_info)
-		self.foundation_text.set_text(self.first_card.card_str)
-		self.foundation_text.center_on((self.x, self.y - 10))
-		t_w = 0
-		for suit_text in self.foundation_suits[:2]:
-			t_w += suit_text.w 
-		b_w = 0
-		for suit_text in self.foundation_suits[2:]:
-			b_w += suit_text.w 
-		x, y = self.x - t_w // 4, self.y + self.foundation_text.h - 10
-		for suit_text in self.foundation_suits[:2]:
-			suit_text.center_on((x, y))
-			x += suit_text.w 
-		x, y = self.x - b_w // 4, y + self.foundation_suits[0].h + 2
-		for i, suit_text in enumerate(self.foundation_suits[2:]):
-			if i == 0:
-				suit_text.center_on((x, y - 2))
-			else:
-				suit_text.center_on((x, y))
-			x += suit_text.w 
+		card_str = self.first_card.card_str
+		self.card_value_text_top.set_text(card_str)
+		self.card_value_text_top.set_position((self.left + 2, self.top + 3))
+		self.card_value_text_bottom.set_text(card_str)
+		w, h = self.card_value_text_bottom.size
+		self.card_value_text_bottom.set_position((self.right - w - 2, self.bottom - h - 3))
 
 	def can_lay(self, card):
 		if any(self.cards):
@@ -394,8 +399,9 @@ class FoundationTile (CardTile):
 
 	def draw(self, surface):
 		super().draw(surface)
-		self.foundation_text.draw(surface)
-		for suit_text in self.foundation_suits:
+		self.card_value_text_top.draw(surface)
+		self.card_value_text_bottom.draw(surface)
+		for suit_text in self.foundation_suit_texts:
 			suit_text.draw(surface)
 
 @pause_events_class
@@ -408,7 +414,7 @@ class CardTiles:
 		self.card_tiles = [] 
 		self.parse_tiles()
 		self.mw, self.mh = margins
-		self.tile_width, self.tile_height = self.card_size = (0, 0)
+		self.tile_width, self.tile_height = self.tile_size = (0, 0)
 		self.fill(*left_top, *table_size)
 		self.wire_events()
 
@@ -418,6 +424,7 @@ class CardTiles:
 
 	@pause_events_method
 	def on_mouse_left_button_down(self, event):
+		print('on_mouse_left_button_down')
 		for tile in self.find_all(lambda x : not x == BlankTile.INDEX and not x == DeckTile.INDEX):
 			if tile.is_within(event.pos):
 				events.UserEvent(CustomEvent.TILE_CLICKED).post(tile=tile, pos=event.pos)
@@ -493,47 +500,46 @@ class CardTiles:
 			temp_cw = self.tile_height * self.card_size_ratio
 			total_width = 4 * temp_cw + 5 * self.mw
 		self.tile_width = temp_cw
-		self.card_size = (self.tile_width, self.tile_height)
+		self.tile_size = (self.tile_width, self.tile_height)
 
 	def recenter(self, w, h):
-		extra_w = (w - (4 * self.tile_width  + 5 * self.mw)) // 2
-		extra_h = (h - (3 * self.tile_height + 4 * self.mh)) // 2 
+		extra_w = (w - (4 * self.tile_width  + 5 * self.mw)) // 2 + self.mw
+		extra_h = (h - (3 * self.tile_height + 4 * self.mh)) // 2 + self.mh
 		for i in range(self.cols):
 			for j in range(self.rows):
-				card_tile = self.card_tiles[4 * j + i]
+				card_tile = self.card_tiles[3 * i + j]
 				x, y = card_tile.left_top
 				card_tile.set_position((x + extra_w, y + extra_h))
 
-	def fill(self, left, top, w, h):
+	def fill_tile(self, tile, index, x, y):
+		tile.cards.clear()
+		tile.set_index(index)
+		tile.set_size(self.tile_size)
+		tile.set_position((x, y))	
+
+	def resize(self, left, top, w, h):
 		self.assay(w // 2, h // 2)
-		tile_index = 0
 		for i in range(self.cols):
 			for j in range(self.rows):
+				index = 3 * i + j
+				tile = self.card_tiles[index]
 				cx = left + i * (self.tile_width + self.mw)
 				cy = top + j * (self.tile_height + self.mh)
-				tile = self.tile_info[tile_index]
-				module = sys.modules[__name__]
-				self.card_tiles.append(tile.instance(module, (cx, cy), self.card_size, tile_index))
-				tile_index += 1
+				self.fill_tile(tile, index, cx, cy)	
 		self.recenter(w, h)
+
+	def fill(self, left, top, w, h):
+		pass_thr = (0, 0)
+		module = sys.modules[__name__]
+		for i in range(self.cols):
+			for j in range(self.rows):
+				tile = self.tile_info[3 * i + j]
+				self.card_tiles.append(tile.instance(module, pass_thr, pass_thr, 0))
+		self.resize(left, top, w, h)
 
 	def refill(self, left_top, new_size):
 		self.card_tiles.clear()
 		self.fill(*left_top, *new_size)
-
-	def resize(self, left, top, w, h):
-		self.assay(w // 2, h // 2)
-		tile_index = 0
-		for i in range(self.cols):
-			for j in range(self.rows):
-				tile = self.card_tiles[tile_index]
-				cx = left + i * (self.tile_width + self.mw)
-				cy = top + j * (self.tile_height + self.mh)
-				tile.cards.clear()
-				tile.set_size(self.card_size)
-				tile.set_position((cx, cy))	
-				tile_index += 1
-		self.recenter(w, h)
 
 	def reset(self):
 		for tile in self.card_tiles:
@@ -585,14 +591,15 @@ class CardTable:
 		events.UserEvent(CustomEvent.CARD_MOTION).post(pos=event.pos)
 
 	def restart(self):
-		self.card_tiles.reset()
-		imp.IMP().actions.clear()
-		events.UserEvent(CustomEvent.RESTART).post(tiles=self.card_tiles.find_all())
+		self.reset(CustomEvent.RESTART)
 
 	def new_deal(self):
+		self.reset(CustomEvent.NEW_DEAL)
+
+	def reset(self, event):
 		imp.IMP().actions.clear()
 		self.card_tiles.reset()
-		events.UserEvent(CustomEvent.NEW_DEAL).post(tiles=self.card_tiles.find_all())
+		events.UserEvent(event).post(tiles=self.card_tiles.find_all())
 
 	def update(self):
 		self.card_tiles.update()

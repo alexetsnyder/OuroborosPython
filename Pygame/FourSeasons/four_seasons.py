@@ -449,7 +449,7 @@ class CardTiles:
 					undo_action = acts.UndoAction(self.undo_card_layed, self.redo_card_layed, *undo_args)
 					imp.IMP().actions.post(undo_action)
 			else:
-				print('Action> {} <- {}'.format(original_tile, selected_card))
+				print('NonAction> {} <- {}'.format(original_tile, selected_card))
 				original_tile.lay(selected_card)
 			if self.check_win():
 				events.UserEvent(CustomEvent.GAME_OVER).post()

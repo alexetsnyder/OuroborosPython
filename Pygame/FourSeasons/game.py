@@ -13,6 +13,7 @@ from structs import *
 #5) Only winable hands.
 #6) One list to draw everything.
 #7) Center the game better.
+#8) At Zero cards text and deck picture disappear
 
 class Screen:
 	def __init__(self, size):
@@ -84,11 +85,13 @@ class Game:
 		self.side_bar = controls.SideBar(self.h, controls=buttons)
 
 	def new_game(self, event):
+		self.un_pause()
 		self.card_table.new_deal()
 		self.restart_btn.set_enabled(True)
 		self.pause_btn.set_enabled(True)
 
 	def restart(self, event):
+		self.un_pause()
 		self.card_table.restart()
 
 	def undo(self, event):
@@ -130,12 +133,6 @@ class Game:
 		self.pause_text.center_on(self.center)
 
 	def on_pause(self, event):
-		if self.is_paused and self.is_win:
-			self.is_win = False
-			self.pause_text.set_text('Paused!')
-			self.pause_text.center_on(self.center)
-			self.card_table.new_deal()
-		print(self)
 		self.pause()
 
 	def on_game_over(self, event):
@@ -143,7 +140,8 @@ class Game:
 		imp.IMP().actions.clear()
 		self.pause_text.set_text('Winner!')
 		self.pause_text.center_on(self.center)
-		events.KeyDownEvent(CustomEvent.PAUSE).post()
+		self.pause_btn.set_enabled(False)
+		self.pause()
 
 	def on_redo_undo_changed(self, event):
 		self.toggle_undo_redo()
@@ -154,6 +152,13 @@ class Game:
 		self.pause_text.set_visibility(self.is_paused)
 		if not self.is_paused:
 			self.previous = time.time()
+
+	def un_pause(self):
+		self.is_win = False
+		self.pause_text.set_text('Paused!')
+		self.pause_text.center_on(self.center)
+		if self.is_paused:
+			self.pause()
 
 	def tick(self):
 		current = time.time()

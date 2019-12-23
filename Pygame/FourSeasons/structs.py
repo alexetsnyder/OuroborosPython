@@ -40,6 +40,9 @@ class CustomEvent:
 	UNDO_ENABLED       = 12
 	REDO_ENABLED       = 14
 	UNDO_STACK_CLEARED = 15
+	QUICK_LAY          = 16
+	TILE_DBL_CLICKED   = 17
+	CARD_DROPPED       = 18
 
 class Suits:
 	DIAMONDS = 0

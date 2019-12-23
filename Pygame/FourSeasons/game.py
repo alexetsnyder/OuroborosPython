@@ -9,10 +9,8 @@ from structs import *
 # 1) Quick Click (click on a card and it is placed on a tile).
 # 2) Timer.
 # 3) Score.
-# 4) Refactor foundation tile background.
 # 5) Only winable hands.
 # 6) One list to draw everything.
-# 7) Center the game better.
 # 8) At Zero cards text and deck picture disappear
 # 9) Debug Print.
 #10) Put data in data file.

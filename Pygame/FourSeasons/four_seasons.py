@@ -53,7 +53,7 @@ class Card:
 
 	def wire_events(self):
 		imp.IMP().add_delegate(events.UserEvent(CustomEvent.CARD_MOTION).listen(self.on_card_motion, quell=True))
-		imp.IMP().add_delegate(events.MouseLeftButtonUpEvent().listen(self.on_mouse_left_button_up, quell=True))
+		imp.IMP().add_delegate(events.UserEvent(CustomEvent.CARD_DROPPED).listen(self.on_card_dropped))
 
 	@pause_events_method
 	def on_card_motion(self, event):
@@ -64,9 +64,10 @@ class Card:
 			self.mouse_pos = new_pos
 
 	@pause_events_method
-	def on_mouse_left_button_up(self, event):
+	def on_card_dropped(self, event):
 		if self.is_selected:
 			events.UserEvent(CustomEvent.CARD_LAYED).post(card=self)
+			self.is_selected = False
 
 	def select(self, mouse_pos):
 		self.is_selected = True
@@ -130,6 +131,7 @@ class Deck:
 
 	def wire_events(self):
 		imp.IMP().add_delegate(events.UserEvent(CustomEvent.TILE_CLICKED).listen(self.on_tile_clicked))
+		imp.IMP().add_delegate(events.UserEvent(CustomEvent.TILE_DBL_CLICKED).listen(self.on_tile_dbl_clicked))
 		imp.IMP().add_delegate(events.UserEvent(CustomEvent.NEW_DEAL).listen(self.on_new_deal))
 		imp.IMP().add_delegate(events.UserEvent(CustomEvent.RESTART).listen(self.on_restart))
 		imp.IMP().add_delegate(events.UserEvent(CustomEvent.DRAW_ONE).listen(self.on_draw_one))
@@ -163,6 +165,16 @@ class Deck:
 				self.active_cards.remove(i)
 				self.active_cards.append(i)
 				card.select(event.pos)
+				break
+
+	@pause_events_method
+	def on_tile_dbl_clicked(self, event):
+		for i in reverse(self.active_cards):
+			card = self.deck[i]
+			if card.tile_index == event.tile.index:
+				self.active_cards.remove(i)
+				self.active_cards.append(i)
+				events.UserEvent(CustomEvent.QUICK_LAY).post(card=card)
 				break
 
 	def on_card_table_resized(self, event):
@@ -388,8 +400,9 @@ class FoundationTile (CardTile):
 	def can_lay(self, card):
 		if any(self.cards):
 			prv_card = self.cards[-1]
-			if card.suit == prv_card.suit and card.value - 1 == prv_card.value or card.value == 1 and prv_card.value == 13:
-				return True
+			if card.suit == prv_card.suit:
+				if card.value - 1 == prv_card.value or card.value == 1 and prv_card.value == 13:
+					return True
 		elif self.first_card.value == card.value:
 			return True
 		return False
@@ -413,27 +426,93 @@ class CardTiles:
 		self.tile_info = {}
 		self.card_tiles = [] 
 		self.parse_tiles()
+		self.mouse_clicks = []
+		self.mouse_unclicks = []
 		self.mw, self.mh = margins
 		self.tile_width, self.tile_height = self.tile_size = (0, 0)
 		self.fill(*left_top, *table_size)
+		self.click_time = 0
 		self.wire_events()
 
 	def wire_events(self):
 		imp.IMP().add_delegate(events.MouseLeftButtonDownEvent().listen(self.on_mouse_left_button_down))
+		imp.IMP().add_delegate(events.MouseLeftButtonUpEvent().listen(self.on_mouse_left_button_up))
+		imp.IMP().add_delegate(events.UserEvent(CustomEvent.QUICK_LAY).listen(self.on_quick_lay))
 		imp.IMP().add_delegate(events.UserEvent(CustomEvent.CARD_LAYED).listen(self.on_card_layed))
 
 	@pause_events_method
 	def on_mouse_left_button_down(self, event):
-		print('on_mouse_left_button_down')
-		for tile in self.find_all(lambda x : not x == BlankTile.INDEX and not x == DeckTile.INDEX):
-			if tile.is_within(event.pos):
-				events.UserEvent(CustomEvent.TILE_CLICKED).post(tile=tile, pos=event.pos)
-				break
-		else:
-			deck_tile = self.get_deck_tile()
-			if deck_tile.is_within(event.pos):
+		self.click_time = time.time()
+		self.mouse_clicks.append(event.pos)
+
+	@pause_events_method
+	def on_mouse_left_button_up(self, event):
+		self.mouse_unclicks.append(event.pos)
+
+	def process_click(self):
+		delta_time = time.time() - self.click_time	
+		if len(self.mouse_clicks) > 1:
+			self.mouse_unclicks.clear()
+			mouse_pos = self.mouse_clicks.pop()
+			self.mouse_clicks.pop()
+			self.post_tile_dbl_clicked(mouse_pos)
+		elif delta_time > 0.20 and any(self.mouse_clicks):
+			mouse_pos = self.mouse_clicks.pop()
+			self.post_tile_clicked(mouse_pos)
+
+	def process_unclick(self):
+		if not any(self.mouse_clicks) and any(self.mouse_unclicks):
+			mouse_pos = self.mouse_unclicks.pop()
+			events.UserEvent(CustomEvent.CARD_DROPPED).post(pos=mouse_pos)
+
+	def post_tile_dbl_clicked(self, mouse_pos):
+		tile = self.get_clicked_tile(mouse_pos)
+		if not tile == None and not tile.index == DeckTile.INDEX:
+			events.UserEvent(CustomEvent.TILE_DBL_CLICKED).post(tile=tile)
+
+	def post_tile_clicked(self, mouse_pos):
+		tile = self.get_clicked_tile(mouse_pos)
+		if not tile == None:
+			if tile.index == DeckTile.INDEX:
 				discard_tile = self.get_discard_tile()
-				events.UserEvent(CustomEvent.DRAW_ONE).post(deck_tile=deck_tile, discard_tile=discard_tile)
+				events.UserEvent(CustomEvent.DRAW_ONE).post(deck_tile=tile, discard_tile=discard_tile)
+			else:
+				events.UserEvent(CustomEvent.TILE_CLICKED).post(tile=tile, pos=mouse_pos)
+
+	def get_clicked_tile(self, mouse_pos):
+		for tile in self.find_all(lambda x : not x == BlankTile.INDEX):
+			if tile.is_within(mouse_pos):
+				return tile 
+		return None
+
+	def find_tile_to_lay(self, card):
+		tableue_tiles = []
+		for tile in self.find_all(lambda x : not x in [BlankTile.INDEX, DiscardTile.INDEX, DeckTile.INDEX]):
+			if tile.can_lay(card):
+				if tile.index in FoundationTile.INDEXES:
+					return tile 
+				tableue_tiles.append(tile)
+		if any(tableue_tiles):
+			return tableue_tiles[0]
+		return None
+
+	@pause_events_method
+	def on_quick_lay(self, event):
+		card = event.card 
+		tile = self.find_tile_to_lay(card)
+		source_tile = self.card_tiles[card.tile_index]
+		if not tile == None:
+			source_tile.pop()
+			tile.lay(card)
+			if not tile.index == source_tile.index:
+				print('Action> {} -> {} -> {}'.format(source_tile.index, card, tile))
+				undo_args = (source_tile, tile, card)
+				undo_action = acts.UndoAction(self.undo_card_layed, self.redo_card_layed, *undo_args)
+				imp.IMP().actions.post(undo_action)
+			else:
+				print('NonAction> {} <- {}'.format(source_tile, card))
+			if self.check_win():
+				events.UserEvent(CustomEvent.GAME_OVER).post()
 
 	@pause_events_method
 	def on_card_layed(self, event):
@@ -448,13 +527,12 @@ class CardTiles:
 						max_area = area
 						selected_tile = tile
 			original_tile.pop()
-			if selected_tile.can_lay(selected_card):
+			if not selected_tile.index == original_tile and selected_tile.can_lay(selected_card):
 				print('Action> {} -> {} -> {}'.format(original_tile.index, selected_card, selected_tile))
 				selected_tile.lay(selected_card)
-				if not selected_tile.index == original_tile.index:
-					undo_args = (original_tile, selected_tile, selected_card)
-					undo_action = acts.UndoAction(self.undo_card_layed, self.redo_card_layed, *undo_args)
-					imp.IMP().actions.post(undo_action)
+				undo_args = (original_tile, selected_tile, selected_card)
+				undo_action = acts.UndoAction(self.undo_card_layed, self.redo_card_layed, *undo_args)
+				imp.IMP().actions.post(undo_action)
 			else:
 				print('NonAction> {} <- {}'.format(original_tile, selected_card))
 				original_tile.lay(selected_card)
@@ -552,6 +630,8 @@ class CardTiles:
 		return [tile for i, tile in enumerate(self.card_tiles) if filter(i)]
 
 	def update(self):
+		self.process_click()
+		self.process_unclick()
 		for tile in self.card_tiles:
 			tile.update()
 

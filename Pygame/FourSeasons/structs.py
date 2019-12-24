@@ -44,34 +44,38 @@ class CustomEvent:
 	TILE_DBL_CLICKED   = 17
 	CARD_DROPPED       = 18
 
-class Suits:
+class Suit:
 	DIAMONDS = 0
 	HEARTS   = 1
 	SPADES   = 2
 	CLUBS    = 3
 
-SUITS_CHAR = {
- 	Suits.DIAMONDS : '♢',
- 	Suits.HEARTS   : '♡',
- 	Suits.SPADES   : '♤',
-	Suits.CLUBS    : '♧' 
+SUITS = [Suit.HEARTS, Suit.SPADES, Suit.CLUBS, Suit.DIAMONDS]
+
+SUIT_TO_CHAR = {
+ 	Suit.DIAMONDS : '♢',
+ 	Suit.HEARTS   : '♡',
+ 	Suit.SPADES   : '♤',
+	Suit.CLUBS    : '♧' 
 }
 
-SUITS_STR = {
- 	Suits.DIAMONDS : 'Diamonds',
- 	Suits.HEARTS   : 'Hearts',
- 	Suits.SPADES   : 'Spades',
-	Suits.CLUBS    : 'Clubs' 
+SUIT_TO_STR = {
+ 	Suit.DIAMONDS : 'Diamonds',
+ 	Suit.HEARTS   : 'Hearts',
+ 	Suit.SPADES   : 'Spades',
+	Suit.CLUBS    : 'Clubs' 
 }
 
-SUITS_COLOR = {
- 	Suits.DIAMONDS : Color.RED,
- 	Suits.HEARTS   : Color.RED,
- 	Suits.SPADES   : Color.BLACK,
- 	Suits.CLUBS    : Color.BLACK 
+SUIT_TO_COLOR = {
+ 	Suit.DIAMONDS : Color.RED,
+ 	Suit.HEARTS   : Color.RED,
+ 	Suit.SPADES   : Color.BLACK,
+ 	Suit.CLUBS    : Color.BLACK 
 }
 
-CARD_VALUES = {
+CARD_VALUES = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13]
+
+CARD_STR_TO_VAL = {
 	'A' :    1,
 	'2' :    2,
 	'3' :    3,
@@ -87,7 +91,7 @@ CARD_VALUES = {
 	'K' :   13
 }
 
-CARD_LETTERS = {
+CARD_VAL_TO_STR = {
 	 1  :  'A',
 	 2  :  '2',
 	 3  :  '3',

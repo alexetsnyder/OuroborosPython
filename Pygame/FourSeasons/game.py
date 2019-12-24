@@ -6,7 +6,6 @@ import four_seasons as fs
 from structs import *
 
 #ToDo:
-# 1) Quick Click (click on a card and it is placed on a tile).
 # 2) Timer.
 # 3) Score.
 # 5) Only winable hands.

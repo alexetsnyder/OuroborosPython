@@ -39,10 +39,10 @@ class Card:
 		self.value = card_val
 		self.tile_index = tile_index
 		self.is_showing = is_showing
-		self.card_str = CARD_LETTERS[self.value]
-		self.suit_char = SUITS_CHAR[suit]
-		self.suit_str = SUITS_STR[suit] 
-		self.suit_color = SUITS_COLOR[suit]
+		self.card_str = CARD_VAL_TO_STR[self.value]
+		self.suit_char = SUIT_TO_CHAR[suit]
+		self.suit_str = SUIT_TO_STR[suit] 
+		self.suit_color = SUIT_TO_COLOR[suit]
 		self.rect = go.Rect((0, 0), (0, 0), is_visible=False)
 		self.card_back = pygame.image.load('{0}/{1}'.format(Card.SOURCE_FOLDER, Card.CARD_BACK_IMAGE_FILE)).convert()
 		self.card_front = pygame.image.load('{0}/card{1}{2}.png'.format(Card.SOURCE_FOLDER, self.suit_str, self.card_str)).convert()
@@ -126,6 +126,7 @@ class Deck:
 		self.seed = -1
 		self.deck = []
 		self.active_cards = []
+		self.deal_order = imp.IMP().config.try_get('NEW_DEAL', [])
 		self.create()
 		self.wire_events()
 
@@ -218,18 +219,12 @@ class Deck:
 
 	def deal(self, tiles):
 		self.reset()
-		deck_tile = tiles[DeckTile.INDEX]
-		self.draw_card(self.deck[0], tiles[FoundationTile.INDEXES[0]])
-		events.UserEvent(CustomEvent.FIRST_CARD).post(card=self.deck[0])
-		for i in range(1, Deck.DEALT_CARDS - 1):
-			self.draw_card(self.deck[i], tiles[TableueTile.INDEXES[i - 1]])
-		self.draw_card(self.deck[Deck.DEALT_CARDS - 1], tiles[DiscardTile.INDEX])
-		self.active_cards += [i for i in range(Deck.DEALT_CARDS)]
-		deck_tile.update_text(str(len(self.deck) - len(self.active_cards)))
+		index = 0
+		for i in self.deal_order:
+			tiles[i].lay(self.deck[index])
+			self.active_cards.append(index)
+			index += 1
 		return self
-
-	def draw_card(self, card, tile):
-		tile.lay(card)
 
 	def reset(self):
 		self.active_cards.clear()
@@ -351,7 +346,6 @@ class FoundationTile (CardTile):
 		font_info = go.FontInfo(font_size=self.font_size, font_name=Card.SUIT_FONT, font_color=Color.BLACK)
 		self.card_value_text_top = go.RenderText('', is_visible=False, font_info=font_info)
 		self.card_value_text_bottom = go.RenderText('', is_visible=False, font_info=font_info) 
-		self.suits_list = [Suits.HEARTS, Suits.CLUBS, Suits.SPADES, Suits.DIAMONDS]
 		self.creat_suit_emblem()
 		self.wire_events()
 
@@ -360,9 +354,9 @@ class FoundationTile (CardTile):
 		self.postion_suit_emblem()
 
 	def creat_suit_emblem(self):
-		for suit in self.suits_list:
-			font_info = go.FontInfo(font_size=self.font_size, font_color=SUITS_COLOR[suit], font_name=Card.SUIT_FONT) 
-			self.foundation_suit_texts.append(go.RenderText(SUITS_CHAR[suit], font_info=font_info))
+		for suit in SUITS:
+			font_info = go.FontInfo(font_size=self.font_size, font_color=SUIT_TO_COLOR[suit], font_name=Card.SUIT_FONT) 
+			self.foundation_suit_texts.append(go.RenderText(SUIT_TO_CHAR[suit], font_info=font_info))
 
 	def postion_suit_emblem(self):
 		center_signs = ((-1, -1), (1, -1), (-1, 1), (1, 1))
@@ -406,6 +400,11 @@ class FoundationTile (CardTile):
 		elif self.first_card.value == card.value:
 			return True
 		return False
+
+	def lay(self, card):
+		if self.first_card == None:
+			events.UserEvent(CustomEvent.FIRST_CARD).post(card=card)
+		super().lay(card)
 
 	def is_complete(self):
 		return len(self.cards) == Deck.CARD_COUNT

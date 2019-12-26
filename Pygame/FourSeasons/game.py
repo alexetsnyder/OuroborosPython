@@ -1,8 +1,7 @@
 #game.py
 import controls
 import pygame, time
-import events, imp, go
-import four_seasons as fs
+import events, imp, go, cards
 from structs import *
 
 #ToDo:
@@ -48,7 +47,7 @@ class Game:
 		self.SEC_PER_FRAME = 1 / 60
 		self.center = tuple(x // 2 for x in self.size)
 		self.title = imp.IMP().config.try_get('GAME_NAME', 'Default Name')
-		self.card_table = fs.CardTable((0, 0), self.size, margins=imp.IMP().config.try_get('CARD_TABLE_MARGINS', (0, 0)))
+		self.card_table = cards.CardTable((0, 0), self.size, margins=imp.IMP().config.try_get('CARD_TABLE_MARGINS', (0, 0)))
 		self.pause_text = go.RenderText('Paused!', font_info=go.FontInfo(60, Color.BLUE), is_visible=False)
 		self.pause_text.center_on(self.center)
 		self.create_side_bar()

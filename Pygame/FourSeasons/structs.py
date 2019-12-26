@@ -106,3 +106,9 @@ CARD_VAL_TO_STR = {
 	12  :  'Q',
 	13  :  'K',
 }
+
+class FSTile:
+	TABLEUE_TILE    = 0
+	FOUNDATION_TILE = 1
+	DECK_TILE       = 2
+	DISCARD_TILE    = 3

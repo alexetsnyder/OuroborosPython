@@ -90,6 +90,26 @@ def event_wrapper(event):
 	event.__dict__['type'] = event.type
 	return event
 
+def pause_events_class(cls):
+	class ClassWrapper (cls):
+		def __init__(self, *args, **kargs):
+			self.is_paused = True
+			super().__init__(*args, **kargs)
+
+		def on_pause(self, event):
+			self.is_paused = not self.is_paused
+
+		def wire_events(self):
+			super().wire_events()
+			imp.IMP().add_delegate(UserEvent(CustomEvent.PAUSE).listen(self.on_pause))
+	return ClassWrapper
+
+def pause_events_method(func):
+	def func_wrapper(self, event):
+		if not self.is_paused:
+			func(self, event)
+	return func_wrapper
+
 class Tree:
 	def __init__(self):
 		self.root = None

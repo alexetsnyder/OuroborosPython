@@ -153,10 +153,15 @@ class SideBar (Control):
 		
 	def wire_events(self):
 		imp.IMP().add_delegate(events.WindowResizedEvent().listen(self.on_resize))
+		imp.IMP().add_delegate(events.UserEvent(CustomEvent.REFRESH_SIDEBAR).listen(self.on_refresh_sidebar))
 
 	def on_resize(self, event):
 		self.window_width, self.window_height = self.window_size = (event.w, event.h)
 		self.set_size(self.assay_size())
+
+	def on_refresh_sidebar(self, event):
+		self.set_size(self.assay_size())
+		self.set_position((0, 0))
 
 	def on_click_toggle_bar(self, event):
 		self.toggle_bar()
@@ -357,6 +362,132 @@ class CheckBox (Control):
 		self.lbl_text.draw(surface)
 		super().draw(surface)
 
+class CounterBox (Control):
+	def __init__(self, is_clock=True, can_grow=False, limit=100, left_top=(0, 0), color=Color.BLACK, digit_color=Color.RED):
+		self.color = color 
+		self.digit_color = digit_color
+		self.limit = limit
+		self.can_grow = can_grow
+		self.is_clock = is_clock
+		self.is_visible = True
+		self.counter1 = 0
+		self.counter2 = 0
+		self.counter3 = 0
+		self.seperator_txt = go.RenderText(':')
+		self.seconds_txt = go.RenderText('{:02}'.format(self.counter1))
+		self.minutes_txt = go.RenderText('{:02}'.format(self.counter2))
+		self.hour_txt = go.RenderText('{:02}'.format(self.counter3))
+		self.box = go.Rect(left_top, (0, 0), color=color)
+		self.font_info = go.FontInfo(font_size=30, font_color=digit_color)
+		self.display_text = go.RenderText(self.get_display_str(), font_info=self.font_info)
+		default_size = self.display_text.size 
+		if self.is_clock:
+			default_size = self.get_clock_size()
+		super().__init__(left_top, default_size=default_size)
+
+	def set_size(self, size):
+		super().set_size(size)
+		self.box.set_size(size)
+
+	def set_position(self, left_top):
+		super().set_position(left_top)
+		self.box.set_position(self.left_top)
+		self.display_text.center_on(self.center)
+		left = self.left + 5
+		if self.counter3 > 0:
+			self.hour_txt.set_position((left, self.top + self.h // 4))
+			left += self.hour_txt.w + self.seperator_txt.w + 4
+		self.minutes_txt.set_position((left, self.top + self.h // 4))
+		left += self.minutes_txt.w + self.seperator_txt.w + 4
+		self.seconds_txt.set_position((left, self.top + self.h // 4))
+
+	def get_clock_size(self):
+		clock_width = 0
+		if self.counter3 > 0:
+			clock_width += self.hour_txt.w + 2
+			clock_width += self.seperator_txt.w + 2
+		clock_width += self.minutes_txt.w + 2
+		clock_width += self.seperator_txt.w + 2
+		clock_width += self.seconds_txt.w 
+		return (clock_width + 10, self.seconds_txt.h + 10)
+
+	def get_display_str(self):
+		return '{:03}'.format(self.counter1)
+
+	def post_sidebar_refresh(self):
+		events.UserEvent(CustomEvent.REFRESH_SIDEBAR).post()
+
+	def set_visibility(self, is_visible):
+		self.is_visible = is_visible
+		self.box.set_visibility(self.is_visible)
+		self.display_text.set_visibility(self.is_visible)
+		self.seperator_txt.set_visibility(self.is_visible)
+		self.hour_txt.set_visibility(self.is_visible)
+		self.minutes_txt.set_visibility(self.is_visible)
+		self.seconds_txt.set_visibility(self.is_visible)
+
+	def update_counters(self):
+		if self.is_clock:
+			is_post = False
+			if self.counter1 >= 60:
+				self.counter1 = 0
+				self.counter2 += 1
+			if self.counter2 >= 60:
+				self.counter2 = 0
+				self.counter3 += 1
+				is_post = True
+			if self.counter3 >= 60:
+				is_post = True
+				self.counter3 = 0
+			if is_post:
+				self.post_sidebar_refresh()
+		else:
+			if self.can_grow:
+				self.post_sidebar_refresh()
+			elif self.counter1 >= self.limit:
+				self.counter1 = 0
+
+	def update(self):
+		self.update_counters()
+		size = 0 
+		if self.is_clock:
+			self.seconds_txt.set_text('{:02}'.format(self.counter1))
+			self.minutes_txt.set_text('{:02}'.format(self.counter2))
+			self.hour_txt.set_text('{:02}'.format(self.counter3))
+			size = self.get_clock_size()
+		else:
+			self.display_text.set_text(self.get_display_str())
+			size = self.display_text.size 
+		self.set_size(size)
+		self.set_position(self.origin)
+		self.display_text.update()
+		self.seperator_txt.update()
+		self.seconds_txt.update()
+		self.minutes_txt.update()
+		self.hour_txt.update()
+		self.box.update()
+
+	def draw_clock(self, surface):
+		left = self.left + 5
+		if self.counter3 > 0:
+			self.hour_txt.draw(surface)
+			left += self.hour_txt.w
+			self.seperator_txt.draw_at(surface, (left + 1, self.top + self.h // 4 + 1))
+			left += 7
+		left += self.seperator_txt.w
+		self.minutes_txt.draw(surface)
+		left += self.minutes_txt.w
+		self.seperator_txt.draw_at(surface, (left - 1, self.top + self.h // 4 + 1))
+		self.seconds_txt.draw(surface)
+
+	def draw(self, surface):
+		self.box.draw(surface)
+		if self.is_clock:
+			self.draw_clock(surface)
+		else:
+			self.display_text.draw(surface)
+		super().draw(surface)
+
 if __name__=='__main__':
 	import pygame
 	pygame.init()
@@ -372,6 +503,8 @@ if __name__=='__main__':
 	buttons.append(Button('Bottom'))
 	buttons.append(Button('(Dis/En)able'))
 	buttons.append(CheckBox('Checked', on_checked=print_hello))
+	buttons.append(CounterBox(is_clock=True, can_grow=True))
+	buttons.append(Button('Inc. Counter'))
 	side_bar = SideBar((600, 400), WindowSide.LEFT, controls=buttons)
 
 	def on_left_click(event):
@@ -393,12 +526,17 @@ if __name__=='__main__':
 		buttons[3].set_enabled(buttons_enabled)
 		buttons[4].set_enabled(buttons_enabled)
 		buttons[6].set_enabled(buttons_enabled)
+		buttons[8].set_enabled(buttons_enabled)
+
+	def increment_counter(event):
+		buttons[7].counter2 += 60
 
 	buttons[1].set_onclick(on_left_click)
 	buttons[2].set_onclick(on_right_click)
 	buttons[3].set_onclick(on_top_click)
 	buttons[4].set_onclick(on_bottom_click)
 	buttons[5].set_onclick(toggle_buttons_enabled)
+	buttons[8].set_onclick(increment_counter)
 
 	surface = pygame.display.set_mode((600, 400))
 	running = True
@@ -407,6 +545,7 @@ if __name__=='__main__':
 			imp.IMP().on_event(event)
 			if event.type == pygame.QUIT:
 				running = False
+		buttons[7].update()
 		surface.fill(Color.TEAL_FELT)
 		side_bar.draw(surface)
 		pygame.display.flip()

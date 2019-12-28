@@ -44,6 +44,7 @@ class CustomEvent:
 	TILE_DBL_CLICKED   = 17
 	CARD_DROPPED       = 18
 	WINNABLE_HANDS     = 19
+	REFRESH_SIDEBAR    = 20
 
 class Suit:
 	DIAMONDS = 0

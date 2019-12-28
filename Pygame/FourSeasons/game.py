@@ -50,7 +50,7 @@ class Game:
 		self.card_table = cards.CardTable((0, 0), self.size, margins=imp.IMP().config.try_get('CARD_TABLE_MARGINS', (0, 0)))
 		self.pause_text = go.RenderText('Paused!', font_info=go.FontInfo(60, Color.BLUE), is_visible=False)
 		self.pause_text.center_on(self.center)
-		self.create_side_bar()
+		self.create_side_bars()
 		self.wire_events()
 		self.set_title()	
 
@@ -64,7 +64,7 @@ class Game:
 		imp.IMP().add_delegate(events.UserEvent(CustomEvent.UNDO_ENABLED).listen(self.on_redo_undo_changed))
 		imp.IMP().add_delegate(events.UserEvent(CustomEvent.REDO_ENABLED).listen(self.on_redo_undo_changed))
 
-	def create_side_bar(self):
+	def create_side_bars(self):
 		buttons = []
 		self.restart_btn = controls.Button('Restart', self.restart)
 		self.new_game_btn = controls.Button('New Game', self.new_game)
@@ -80,7 +80,9 @@ class Game:
 		buttons.append(self.undo_btn)
 		buttons.append(self.redo_btn)
 		buttons.append(self.pause_btn)
-		self.side_bar = controls.SideBar(self.h, controls=buttons)
+		self.left_side_bar = controls.SideBar(self.size, WindowSide.LEFT, controls=buttons)
+		self.check_box = controls.CheckBox('Winnable Hands', on_checked=self.on_checked)
+		self.right_side_bar = controls.SideBar(self.size, WindowSide.RIGHT, controls=[self.check_box])
 
 	def new_game(self, event):
 		self.un_pause()
@@ -115,6 +117,9 @@ class Game:
 		if imp.IMP().actions.can_redo():
 			is_enabled = True
 		self.redo_btn.set_enabled(is_enabled)
+
+	def on_checked(self, event):
+		events.UserEvent(CustomEvent.WINNABLE_HANDS).post(winnable_hands=self.check_box.is_checked)
 
 	def set_title(self):
 		imp.IMP().screen.set_title(self.title)
@@ -166,14 +171,16 @@ class Game:
 
 	def update(self):
 		self.card_table.update()
-		self.side_bar.update()
+		self.left_side_bar.update()
+		self.right_side_bar.update()
 
 	def draw(self):
 		screen = imp.IMP().screen 
 		screen.fill(Color.TEAL_FELT)
 		self.card_table.draw(screen.surface)
 		self.pause_text.draw(screen.surface)
-		self.side_bar.draw(screen.surface)
+		self.left_side_bar.draw(screen.surface)
+		self.right_side_bar.draw(screen.surface)
 		screen.flip()
 
 	def free(self):

@@ -1,5 +1,5 @@
 #four_seasons.py
-import go, imp, events, acts
+import go, imp, events, acts, fs
 import pygame, random, time, sys
 from pygame import freetype
 from structs import *
@@ -98,16 +98,13 @@ def reverse(l):
 
 @events.pause_events_class
 class Deck:
-	SUIT_COUNT  = 4
-	DEALT_CARDS = 7
-	CARD_COUNT  = 13
-
 	def __init__(self):
 		self.seed = -1
 		self.deck = []
 		self.active_cards = []
+		self.shuffler = fs.Shuffler()
+		self.winnable_hands = False
 		self.deal_order = imp.IMP().config.try_get('NEW_DEAL', [])
-		self.create()
 		self.wire_events()
 
 	def wire_events(self):
@@ -117,6 +114,10 @@ class Deck:
 		imp.IMP().add_delegate(events.UserEvent(CustomEvent.RESTART).listen(self.on_restart))
 		imp.IMP().add_delegate(events.UserEvent(CustomEvent.DRAW_ONE).listen(self.on_draw_one))
 		imp.IMP().add_delegate(events.UserEvent(CustomEvent.CARD_TABLE_RESIZED).listen(self.on_card_table_resized))
+		imp.IMP().add_delegate(events.UserEvent(CustomEvent.WINNABLE_HANDS).listen(self.on_winnable_hands))
+
+	def on_winnable_hands(self, event):
+		self.winnable_hands = event.winnable_hands
 
 	@events.pause_events_method
 	def on_draw_one(self, event):
@@ -181,19 +182,15 @@ class Deck:
 		remaining = len(self.deck) - len(self.active_cards)
 		deck_tile.update_text(str(remaining))
 
-	def create(self):
-		for suit in range(Deck.SUIT_COUNT):
-			for i in range(1, Deck.CARD_COUNT + 1):
-				self.deck.append(Card(i, suit, DeckTile.INDEX))
-
-	def shuffle_seed(self):
-		self.seed = time.time()
-		random.seed(self.seed)
-
 	def shuffle(self):
-		self.shuffle_seed()
-		self.print_seed()
-		random.shuffle(self.deck)
+		shuffle_state = None
+		if self.winnable_hands:
+			shuffle_state = self.shuffler.winnable_hand() 
+		else: 
+			shuffle_state = self.shuffler.random_hand()
+		self.deck = shuffle_state.convert(Card, -1)
+		for card in self.deck:
+			card.is_paused = False
 
 	def restart(self, tiles):
 		return self.deal(tiles)
@@ -215,9 +212,6 @@ class Deck:
 		for card in self.deck:
 			card.tile_index = -1
 			card.is_showing = False
-
-	def print_seed(self):
-		print('Seed: {0}'.format(self.seed))
 
 	def update(self):
 		for i in self.active_cards:
@@ -268,6 +262,9 @@ class CardTile:
 
 	def remove(self, card):
 		self.cards.remove(card)
+
+	def reset(self):
+		self.cards.clear()
 
 	def update(self):
 		self.rect.update()
@@ -368,10 +365,10 @@ class FoundationTile (CardTile):
 	def update_foundation_text(self):
 		card_str = self.first_card.card_str
 		self.card_value_text_top.set_text(card_str)
-		self.card_value_text_top.set_position((self.left + 2, self.top + 3))
+		self.card_value_text_top.set_position((self.left + 3, self.top + 3))
 		self.card_value_text_bottom.set_text(card_str)
 		w, h = self.card_value_text_bottom.size
-		self.card_value_text_bottom.set_position((self.right - w - 2, self.bottom - h - 3))
+		self.card_value_text_bottom.set_position((self.right - w - 3, self.bottom - h - 3))
 
 	def can_lay(self, card):
 		if any(self.cards):
@@ -389,7 +386,11 @@ class FoundationTile (CardTile):
 		super().lay(card)
 
 	def is_complete(self):
-		return len(self.cards) == Deck.CARD_COUNT
+		return len(self.cards) == fs.Shuffler.CARDS_PER_SUIT
+
+	def reset(self):
+		super().reset()
+		self.first_card = None
 
 	def draw(self, surface):
 		super().draw(surface)
@@ -460,7 +461,7 @@ class CardTable:
 			mouse_pos = self.mouse_clicks.pop()
 			self.mouse_clicks.pop()
 			self.post_tile_dbl_clicked(mouse_pos)
-		elif delta_time > 0.50 and any(self.mouse_clicks):
+		elif delta_time > 0.30 and any(self.mouse_clicks):
 			mouse_pos = self.mouse_clicks.pop()
 			self.post_tile_clicked(mouse_pos)
 
@@ -617,7 +618,8 @@ class CardTable:
 		self.resize(left, top, w, h)
 
 	def refill(self, left_top, new_size):
-		self.card_tiles.clear()
+		for tile in self.card_tiles:
+			tile.reset()
 		self.fill(*left_top, *new_size)
 
 	def restart(self):
@@ -629,7 +631,7 @@ class CardTable:
 	def reset(self, event):
 		imp.IMP().actions.clear()
 		for tile in self.card_tiles:
-			tile.cards.clear()
+			tile.reset()
 		events.UserEvent(event).post(tiles=self.find_all(), deck_tile=self.find(DeckTile.INDEX))
 
 	def find(self, index):

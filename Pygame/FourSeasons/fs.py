@@ -3,24 +3,16 @@ import imp
 import random, time
 from structs import *
 
-class Comparer:
-	pass
-
 class Card:
-	def __init__(self, suit, val):
+	def __init__(self, value, suit):
 		self.suit = suit 
-		self.value = val 
+		self.value = value
 
 	def __repr__(self):
 		return '<{} {}>'.format(CARD_VAL_TO_STR[self.value], SUIT_TO_STR[self.suit])
 
 	def __str__(self):
 		return '<{} {}>'.format(CARD_VAL_TO_STR[self.value], SUIT_TO_STR[self.suit])
-
-class GameState:
-	def __init__(self, tile_list):
-		self.cards = {index : [] for index in tile_list}
-		
 
 def copy(src_list):
 	return [item for item in src_list]
@@ -30,13 +22,13 @@ class WinState:
 		self.state = self.randomized_win()
 		self.suit_list = [suit for suit in self.state]
 
-	def next_card(self):
+	def get_next_card(self):
 		if not self.empty():
 			random_suit = random.choice(self.suit_list)
 			next_val = self.state[random_suit].pop(0)
 			if self.is_empty(random_suit):
 				self.suit_list.remove(random_suit)
-			return Card(random_suit, next_val)
+			return Card(next_val, random_suit)
 
 	def is_empty(self, suit):
 		return len(self.state[suit]) == 0
@@ -120,13 +112,31 @@ class DiscardState:
 	def add(self, card):
 		self.state.append(card)
 
+	def clear(self):
+		self.state.clear()
+
+	def convert(self, cls, *args):
+		conv_list = []
+		for card in self.state:
+			conv_list.append(cls(card.value, card.suit, *args))
+		return conv_list
+
 class Shuffler:
+	SUIT_COUNT  = 4
+	CARDS_PER_SUIT = 13
+
 	def __init__(self):
 		self.deck = DiscardState()
-		self.count = 0
-		self.new_seed()
+
+	def random_hand(self):
+		self.deck.clear()
+		self.create()
+		self.shuffle()
+		return self.deck
 
 	def winnable_hand(self):
+		self.new_seed()
+		self.deck.clear()
 		win_state = WinState()
 		tab_state = TableueState()
 		while not win_state.empty() or not tab_state.empty():
@@ -135,7 +145,7 @@ class Shuffler:
 
 	def backward_action(self, win_state, tab_state):	
 		card_from = [FSTile.FOUNDATION_TILE, FSTile.TABLEUE_TILE]
-		card_from_weights = [4, 6]
+		card_from_weights = [90, 10]
 		from_choice = random.choices(card_from, card_from_weights)
 		next_card = None
 		if from_choice == FSTile.TABLEUE_TILE:
@@ -153,9 +163,9 @@ class Shuffler:
 					self.deck.add(next_card)
 
 	def foundation_to(self, win_state, tab_state):
-		next_card = win_state.next_card()
+		next_card = win_state.get_next_card()
 		card_to = [FSTile.DISCARD_TILE, FSTile.TABLEUE_TILE]
-		card_to_weights = [1, 6]
+		card_to_weights = [1, 99]
 		to_choice = random.choices(card_to, card_to_weights)
 		tile = tab_state.find_available_tile(next_card)
 		if not tile == -1 and to_choice == FSTile.TABLEUE_TILE:
@@ -163,29 +173,57 @@ class Shuffler:
 		else:
 			self.deck.add(next_card)
 
-	def shuffle(self, deck):
-		random.shuffle(deck)
-		self.count += 1
+	def create(self):
+		for suit in range(Shuffler.SUIT_COUNT):
+			for i in range(1, Shuffler.CARDS_PER_SUIT + 1):
+				self.deck.add(Card(i, suit))
+
+	def shuffle(self):
+		self.new_seed()
+		self.print_seed()
+		random.shuffle(self.deck.state)
 
 	def new_seed(self):
-		self.seed = time.time()
+		self.seed = int(time.time())
 		random.seed(self.seed)
 
+	def print_seed(self):
+		print('Seed: {}'.format(self.seed))
+
 if __name__=='__main__':
-	# win_state = WinState()
-	# card_list = [card for card in win_state.next_card()]
-	# print(len(card_list))
-	# for card in card_list:
-	# 	print(card
+	print('Win State:')
+	win_state = WinState()
+	card_list = []
+	while True:
+		next_card = win_state.get_next_card()
+		if next_card == None:
+			break
+		card_list.append(next_card)
+	print(len(card_list))
+	for card in card_list:
+		print(card)
+
+	print()
+	print('Tableue State:')
+	tab_state = TableueState()
+	a_hearts = Card(Suit.HEARTS, 1)
+	tile = tab_state.find_available_tile(a_hearts)
+	print(tile)
+	tab_state.lay(a_hearts, tile)
+	print(tab_state)
+	card = tab_state.get_next_card()
+	print(card)
+
+	print()
+	print('Winnable Shuffle:')
 	shuffler = Shuffler()
 	shuffle = shuffler.winnable_hand()
 	print(len(shuffle.state))
 	print(shuffle)
-	# tab_state = TableueState()
-	# a_hearts = Card(Suit.HEARTS, 1)
-	# tile = tab_state.find_available_tile(a_hearts)
-	# print(tile)
-	# tab_state.lay(a_hearts, tile)
-	# print(tab_state)
-	# card = tab_state.get_next_card()
-	# print(card)
+
+	print()
+	print('Random Shuffle:')
+	shuffle = shuffler.random_hand()
+	print(len(shuffle.state))
+	print(shuffle)
+	

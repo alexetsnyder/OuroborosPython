@@ -43,6 +43,7 @@ class CustomEvent:
 	QUICK_LAY          = 16
 	TILE_DBL_CLICKED   = 17
 	CARD_DROPPED       = 18
+	WINNABLE_HANDS     = 19
 
 class Suit:
 	DIAMONDS = 0
@@ -112,3 +113,13 @@ class FSTile:
 	FOUNDATION_TILE = 1
 	DECK_TILE       = 2
 	DISCARD_TILE    = 3
+
+class WindowSide:
+	LEFT   = 0
+	RIGHT  = 1
+	TOP    = 2
+	BOTTOM = 3
+
+class WindowOr:
+	VERTICAL   = 0
+	HORIZONTAL = 1

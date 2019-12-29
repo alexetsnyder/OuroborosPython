@@ -65,7 +65,11 @@ class Game:
 		imp.IMP().add_delegate(events.UserEvent(CustomEvent.REDO_ENABLED).listen(self.on_redo_undo_changed))
 
 	def create_side_bars(self):
-		buttons = []
+		self.create_left_side_bar()
+		self.create_right_side_bar()
+
+	def create_left_side_bar(self):
+		left_controls = []
 		self.restart_btn = controls.Button('Restart', self.restart)
 		self.new_game_btn = controls.Button('New Game', self.new_game)
 		self.undo_btn = controls.Button('Undo', self.undo)
@@ -75,14 +79,22 @@ class Game:
 		self.undo_btn.set_enabled(False)
 		self.redo_btn.set_enabled(False)
 		self.pause_btn.set_enabled(False)
-		buttons.append(self.restart_btn)
-		buttons.append(self.new_game_btn)
-		buttons.append(self.undo_btn)
-		buttons.append(self.redo_btn)
-		buttons.append(self.pause_btn)
-		self.left_side_bar = controls.SideBar(self.size, WindowSide.LEFT, controls=buttons)
+		left_controls.append(self.restart_btn)
+		left_controls.append(self.new_game_btn)
+		left_controls.append(self.undo_btn)
+		left_controls.append(self.redo_btn)
+		left_controls.append(self.pause_btn)
+		self.left_side_bar = controls.SideBar(self.size, WindowSide.LEFT, controls=left_controls)
+
+	def create_right_side_bar(self):
+		right_controls = []
+		self.stop_watch = controls.StopWatch()
+		self.score_display = controls.CounterBox(4)
 		self.check_box = controls.CheckBox('Winnable Hands', on_checked=self.on_checked)
-		self.right_side_bar = controls.SideBar(self.size, WindowSide.RIGHT, controls=[self.check_box])
+		right_controls.append(self.stop_watch)
+		right_controls.append(self.score_display)
+		right_controls.append(self.check_box)
+		self.right_side_bar = controls.SideBar(self.size, WindowSide.RIGHT, controls=right_controls)
 
 	def new_game(self, event):
 		self.un_pause()
@@ -136,10 +148,12 @@ class Game:
 		self.pause_text.center_on(self.center)
 
 	def on_pause(self, event):
+		self.stop_watch.stop()
 		self.pause()
 
 	def on_game_over(self, event):
 		imp.IMP().actions.clear()
+		self.stop_watch.stop()
 		self.pause_text.set_text('Winner!')
 		self.pause_text.center_on(self.center)
 		self.pause_btn.set_enabled(False)
@@ -156,6 +170,8 @@ class Game:
 			self.previous = time.time()
 
 	def un_pause(self):
+		self.stop_watch.reset()
+		self.stop_watch.start()
 		self.pause_text.set_text('Paused!')
 		self.pause_text.center_on(self.center)
 		if self.is_paused:

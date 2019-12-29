@@ -91,6 +91,10 @@ class Control:
 			total_height += child.h
 		return total_height + self.mh
 
+	def update(self):
+		for child in self.children:
+			child.update()
+
 	def draw(self, surface):
 		for control in self.children:
 			control.draw(surface)
@@ -218,6 +222,7 @@ class SideBar (Control):
 
 	def update(self):
 		self.rect.update()
+		super().update()
 
 	def draw(self, surface):
 		self.rect.draw(surface)
@@ -600,8 +605,7 @@ if __name__=='__main__':
 	disable_btn.set_onclick(toggle_controls_enabled)
 
 	def update():
-		counter_box.update()
-		stop_watch.update()
+		side_bar.update()
 
 	def draw(surface):
 		surface.fill(Color.TEAL_FELT)

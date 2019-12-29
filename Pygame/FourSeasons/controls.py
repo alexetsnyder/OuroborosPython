@@ -163,6 +163,7 @@ class SideBar (Control):
 	def on_resize(self, event):
 		self.window_width, self.window_height = self.window_size = (event.w, event.h)
 		self.set_size(self.assay_size())
+		self.set_position((0, 0))
 
 	def on_refresh_sidebar(self, event):
 		self.set_size(self.assay_size())
@@ -612,13 +613,15 @@ if __name__=='__main__':
 		side_bar.draw(surface)
 		pygame.display.flip()
 
-	surface = pygame.display.set_mode((600, 400))
+	surface = pygame.display.set_mode((600, 400), pygame.RESIZABLE)
 	running = True
 	while running:
 		for event in pygame.event.get():
 			imp.IMP().on_event(event)
 			if event.type == pygame.QUIT:
 				running = False
+			elif event.type == pygame.VIDEORESIZE:
+				surface = pygame.display.set_mode((event.w, event.h), pygame.RESIZABLE)
 		update()
 		draw(surface)
 	pygame.quit()

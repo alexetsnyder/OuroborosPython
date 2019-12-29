@@ -127,6 +127,7 @@ class Deck:
 			self.active_cards.append(next_index)
 			event.discard_tile.lay(next_card)
 			self.update_remaining(event.deck_tile)
+			events.UserEvent(CustomEvent.UPDATE_SCORE).post(inc=-1)
 			print('Action> Next Card: (#{} {})'.format(next_index, next_card))
 			undo_args = (next_index, next_card, event.deck_tile, event.discard_tile)
 			undo_action = acts.UndoAction(self.undo_draw, self.redo_draw, *undo_args)
@@ -168,12 +169,14 @@ class Deck:
 
 	def undo_draw(self, index, card, deck_tile, discard_tile):
 		discard_tile.remove(card)
+		events.UserEvent(CustomEvent.UPDATE_SCORE).post(inc=-1)
 		self.active_cards.remove(index)
 		deck_tile.update_text(str(len(self.deck) - len(self.active_cards)))
 		print('UndoAction> (#{} {}) {} Left'.format(index, card, len(self.deck) - len(self.active_cards)))
 
 	def redo_draw(self, index, card, deck_tile, discard_tile):
 		self.active_cards.append(index)
+		events.UserEvent(CustomEvent.UPDATE_SCORE).post(inc=-1)
 		discard_tile.lay(card)
 		deck_tile.update_text(str(len(self.deck) - len(self.active_cards)))
 		print('RedoAction> (#{} {}) {} Left'.format(index, card, len(self.deck) - len(self.active_cards)))
@@ -510,6 +513,7 @@ class CardTable:
 			source_tile.pop()
 			tile.lay(card)
 			if not tile.index == source_tile.index:
+				self.post_score_update(tile.index)
 				print('Action> {} -> {} -> {}'.format(source_tile.index, card, tile))
 				undo_args = (source_tile, tile, card)
 				undo_action = acts.UndoAction(self.undo_card_layed, self.redo_card_layed, *undo_args)
@@ -533,6 +537,7 @@ class CardTable:
 						selected_tile = tile
 			original_tile.pop()
 			if not selected_tile.index == original_tile and selected_tile.can_lay(selected_card):
+				self.post_score_update(selected_tile.index)
 				print('Action> {} -> {} -> {}'.format(original_tile.index, selected_card, selected_tile))
 				selected_tile.lay(selected_card)
 				undo_args = (original_tile, selected_tile, selected_card)
@@ -544,13 +549,21 @@ class CardTable:
 			if self.check_win():
 				events.UserEvent(CustomEvent.GAME_OVER).post()
 
+	def post_score_update(self, index):
+		if index in FoundationTile.INDEXES:
+			events.UserEvent(CustomEvent.UPDATE_SCORE).post(inc=10)
+		else:
+			events.UserEvent(CustomEvent.UPDATE_SCORE).post(inc=-5)
+
 	def undo_card_layed(self, source_tile, dest_tile, card):
 		print('UndoAction> {} <- {} <- {}'.format(source_tile, card, dest_tile.index))
+		events.UserEvent(CustomEvent.UPDATE_SCORE).post(inc=-1)
 		dest_tile.remove(card)
 		source_tile.lay(card)
 
 	def redo_card_layed(self, source_tile, dest_tile, card):
 		print('RedoAction> {} -> {} -> {}'.format(source_tile.index, card, dest_tile))
+		events.UserEvent(CustomEvent.UPDATE_SCORE).post(inc=-1)
 		source_tile.remove(card)
 		dest_tile.lay(card)
 

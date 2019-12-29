@@ -512,6 +512,9 @@ class CounterBox (Control):
 		self.box.set_visibility(self.is_visible)
 		self.display_text.set_visibility(self.is_visible)
 
+	def reset(self):
+		self.counter = 0
+
 	def increment(self, n=1):
 		self.counter += n 
 

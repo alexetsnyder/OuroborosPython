@@ -45,6 +45,7 @@ class CustomEvent:
 	CARD_DROPPED       = 18
 	WINNABLE_HANDS     = 19
 	REFRESH_SIDEBAR    = 20
+	UPDATE_SCORE       = 21
 
 class Suit:
 	DIAMONDS = 0

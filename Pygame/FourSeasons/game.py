@@ -63,6 +63,7 @@ class Game:
 		imp.IMP().add_delegate(events.UserEvent(CustomEvent.REDO_STACK_CLEARED).listen(self.on_redo_undo_changed))
 		imp.IMP().add_delegate(events.UserEvent(CustomEvent.UNDO_ENABLED).listen(self.on_redo_undo_changed))
 		imp.IMP().add_delegate(events.UserEvent(CustomEvent.REDO_ENABLED).listen(self.on_redo_undo_changed))
+		imp.IMP().add_delegate(events.UserEvent(CustomEvent.UPDATE_SCORE).listen(self.on_update_score))
 
 	def create_side_bars(self):
 		self.create_left_side_bar()
@@ -162,6 +163,9 @@ class Game:
 	def on_redo_undo_changed(self, event):
 		self.toggle_undo_redo()
 
+	def on_update_score(self, event):
+		self.score_display.increment(event.inc)
+
 	def pause(self):
 		events.UserEvent(CustomEvent.PAUSE).post()
 		self.is_paused = not self.is_paused
@@ -170,6 +174,7 @@ class Game:
 			self.previous = time.time()
 
 	def un_pause(self):
+		self.score_display.reset()
 		self.stop_watch.reset()
 		self.stop_watch.start()
 		self.pause_text.set_text('Paused!')

@@ -5,13 +5,11 @@ import events, imp, go, cards
 from structs import *
 
 #ToDo:
-# 2) Timer.
-# 3) Score.
-# 5) Only winable hands.
-# 6) One list to draw everything.
-# 8) At Zero cards text and deck picture disappear
-# 9) Debug Print.
-#10) Put data in data file.
+# 1) Better winable hands.
+# 2) At Zero cards text and deck picture disappear
+# 3) Debug Print.
+# 4) Faster Dragging.
+# 5) Popup window.
 
 class Screen:
 	def __init__(self, size):
@@ -226,7 +224,7 @@ if __name__=='__main__':
 	from config import Config 
 
 	actions = acts.UndoActions()
-	config = Config('data_file.txt')
+	config = Config('data/config_file.txt')
 	event_dispatcher = events.EventDispatcher()
 	screen = Screen(config.try_get('WINDOW_SIZE', (640, 400)))
 	debug = config.try_get('DEBUG', False)

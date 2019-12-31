@@ -7,7 +7,7 @@ from geo import plottable, Vector
 
 @events.pause_events_class
 class Card:
-	SOURCE_FOLDER = 'Cards'
+	SOURCE_FOLDER = 'data/Cards'
 	CARD_BACK_IMAGE_FILE = 'cardBack_red5.png'
 	SUIT_FONT = 'segoeuisymbol'
 

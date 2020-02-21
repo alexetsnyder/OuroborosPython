@@ -13,6 +13,7 @@ class Control:
 
 	def assay_size(self):
 		self.w, self.h = self.size =  self.get_w(), self.get_h()
+		print('w: {}, h: {}, size: {}'.format(self.w, self.h, self.size))
 
 	def set_position(self, left_top):
 		self.left, self.top = self.left_top = left_top
@@ -253,9 +254,9 @@ class Button (Control):
 		imp.IMP().add_listener(events.MouseMotionEvent().listen(self.on_mouse_motion, quell=True))
 		imp.IMP().add_listener(events.MouseLeftButtonDownEvent().listen(self.on_mouse_left_button_down))
 
-	def set_size(self, size):
+	def assay_size(self):
 		super().assay_size()
-		self.rect.set_size(size)
+		self.rect.set_size(tuple(x + 6 for x in self.btn_text.size))
 
 	def set_position(self, left_top):
 		super().set_position(left_top)
@@ -264,7 +265,7 @@ class Button (Control):
 
 	def set_text(self, text):
 		self.btn_text.set_text(text)
-		self.set_size(tuple(x + 6 for x in self.btn_text.size))
+		self.assay_size()
 		self.set_default(self.btn_text.size)
 
 	def set_onclick(self, method):

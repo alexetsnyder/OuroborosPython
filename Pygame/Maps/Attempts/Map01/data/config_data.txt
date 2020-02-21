@@ -1,0 +1,2 @@
+#Island Map config file
+DEBUG = True

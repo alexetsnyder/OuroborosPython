@@ -25,7 +25,7 @@ class MouseButton:
 	BACKWARD_WHEEL = 5
 
 class CustomEvent:
-	pass
+	REFRESH_SIDEBAR = 20
 
 class WindowSide:
 	LEFT   = 0

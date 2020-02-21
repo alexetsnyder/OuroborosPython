@@ -6,16 +6,13 @@ from structs import *
 
 @plottable
 class Control:
-	def __init__(self, left_top, controls=[], window_or=WindowOr.VERTICAL, default_size=(20, 20), is_override=False):
+	def __init__(self, controls=[], window_or=WindowOr.VERTICAL, default_size=(20, 20), is_override=False):
 		self.mw, self.mh = self.margin = (8, 8)
 		self.window_or = window_or
 		self.children = controls
 		self.set_default(default_size, is_override)
 		self.set_size(self.assay_size())
-		self.set_position(left_top)
-
-	def set_size(self, size):
-		pass
+		self.set_position(self.left_top)
 
 	def set_position(self, left_top):
 		self.position_children()
@@ -101,7 +98,7 @@ class Control:
 
 class BlankControl (Control):
 	def __init__(self, left_top, size):
-		super().__init__(left_top, default_size=size)
+		super().__init__(left_top, (0, 0), default_size=size)
 
 class SideBar (Control):
 	def __init__(self, window_size, side, controls=[], color=Color.SEA_GREEN):
@@ -113,7 +110,7 @@ class SideBar (Control):
 		controls.insert(0, self.btn_show)
 		self.rect = go.Rect((0, 0), (0, 0), color=self.color)
 		self.set_btn_text()
-		super().__init__((0, 0), controls=controls, default_size=self.btn_show.size, window_or=self.get_windows_or())
+		super().__init__((0, 0), window_size, controls=controls, default_size=self.btn_show.size, window_or=self.get_windows_or())
 		self.wire_events()
 
 	def set_size(self, size):
@@ -121,6 +118,7 @@ class SideBar (Control):
 		self.rect.set_size(size)
 
 	def set_position(self, left_top):
+		super().set_position(left_top)
 		left, top = left_top
 		w, h = self.btn_show.size 
 		button_center = (left + self.w - w // 2, top + h // 2)
@@ -132,7 +130,6 @@ class SideBar (Control):
 		elif self.window_side == WindowSide.BOTTOM:
 			left, top = (left, top + self.window_height - self.h)
 			button_center = (left + w // 2, top + h // 2)
-		super().set_position((left, top))
 		self.rect.set_position((left, top))
 		self.btn_show.center_on(button_center)
 
@@ -157,8 +154,8 @@ class SideBar (Control):
 			return WindowOr.HORIZONTAL
 		
 	def wire_events(self):
-		imp.IMP().add_delegate(events.WindowResizedEvent().listen(self.on_resize))
-		imp.IMP().add_delegate(events.UserEvent(CustomEvent.REFRESH_SIDEBAR).listen(self.on_refresh_sidebar))
+		imp.IMP().add_listener(events.WindowResizedEvent().listen(self.on_resize))
+		imp.IMP().add_listener(events.UserEvent(CustomEvent.REFRESH_SIDEBAR).listen(self.on_refresh_sidebar))
 
 	def on_resize(self, event):
 		self.window_width, self.window_height = self.window_size = (event.w, event.h)
@@ -240,12 +237,12 @@ class Button (Control):
 		self.btn_font = go.FontInfo(font_size=10, font_color=Color.BLACK)
 		self.btn_text = go.RenderText(btn_str, self.btn_font)
 		self.rect = go.Rect(left_top, (0, 0), color=self.color)
-		super().__init__(left_top, default_size=self.btn_text.size)
+		super().__init__(left_top, (0, 0), default_size=self.btn_text.size)
 		self.wire_events()
 
 	def wire_events(self):
-		imp.IMP().add_delegate(events.MouseMotionEvent().listen(self.on_mouse_motion, quell=True))
-		imp.IMP().add_delegate(events.MouseLeftButtonDownEvent().listen(self.on_mouse_left_button_down))
+		imp.IMP().add_listener(events.MouseMotionEvent().listen(self.on_mouse_motion, quell=True))
+		imp.IMP().add_listener(events.MouseLeftButtonDownEvent().listen(self.on_mouse_left_button_down))
 
 	def set_size(self, size):
 		super().set_size(size)
@@ -305,7 +302,7 @@ class Button (Control):
 		super().draw(surface)
 
 class CheckBox (Control):
-	def __init__(self, lbl_str, left_top=(0, 0), on_checked=None, is_checked=False, color=Color.BLACK, checked_color=Color.BLACK):
+	def __init__(self, lbl_str, left_top=(0, 0), on_checked=None, is_checked=False, color=Color.TEAL_FELT, checked_color=Color.BLACK):
 		self.is_checked = is_checked
 		self.color = color 
 		self.checked_color = checked_color
@@ -317,11 +314,11 @@ class CheckBox (Control):
 		self.lbl_text = go.RenderText(lbl_str, self.font_info)
 		self.check_box = go.Rect(left_top, (10, 10), color=color, width=1)
 		self.fill_box = go.Rect(left_top, (10, 10), color=checked_color)
-		super().__init__(left_top, default_size=tuple(x + 10 for x in self.lbl_text.size))
+		super().__init__(left_top, (0, 0), default_size=tuple(x + 10 for x in self.lbl_text.size))
 		self.wire_events()
 
 	def wire_events(self):
-		imp.IMP().add_delegate(events.MouseLeftButtonDownEvent().listen(self.on_mouse_left_button_down))
+		imp.IMP().add_listener(events.MouseLeftButtonDownEvent().listen(self.on_mouse_left_button_down))
 
 	def set_position(self, left_top):
 		super().set_position(left_top)
@@ -383,7 +380,7 @@ class StopWatch (Control):
 		self.minutes_txt = go.RenderText(self.display_format(0), self.font_info)
 		self.hours_txt = go.RenderText(self.display_format(0), self.font_info)
 		self.box = go.Rect(left_top, (0, 0), color=color)
-		super().__init__(left_top, default_size=self.get_clock_size())
+		super().__init__(left_top, (0, 0), default_size=self.get_clock_size())
 
 	def set_display(self):
 		hours, minutes, seconds = self.get_time()
@@ -489,7 +486,7 @@ class CounterBox (Control):
 		self.box = go.Rect(left_top, (0, 0), color=color)
 		self.font_info = go.FontInfo(font_size=30, font_color=digit_color)
 		self.display_text = go.RenderText(self.get_display_str(), font_info=self.font_info)
-		super().__init__(left_top, default_size=tuple(x + self.padding for x in self.display_text.size))
+		super().__init__(left_top, (0, 0), default_size=tuple(x + self.padding for x in self.display_text.size))
 
 	def set_size(self, size):
 		super().set_size(size)
@@ -620,7 +617,7 @@ if __name__=='__main__':
 	running = True
 	while running:
 		for event in pygame.event.get():
-			imp.IMP().on_event(event)
+			imp.IMP().dispatch(event)
 			if event.type == pygame.QUIT:
 				running = False
 			elif event.type == pygame.VIDEORESIZE:

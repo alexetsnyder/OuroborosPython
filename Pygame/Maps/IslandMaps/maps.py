@@ -42,7 +42,7 @@ class Noise:
 
 class Land:
 	VALUES = [
-		((0, 50), Color.YELLOW),
+		((0, 50), Color.SAND),
 		((50, 100), Color.SEA_GREEN),
 		((100, 150), Color.FOREST_GREEN),
 		((150, 200), Color.GREY),
@@ -63,39 +63,31 @@ class Land:
 	def get(self, noise):
 		return self.map[int(noise)]
 
-class Pixel:
-	def __init__(self, point, color):
-		self.color = color 
-		self.x, self.y = self.point = point
-
 class MapFill:
 	def __init__(self, island_map):
 		self.island_map = island_map
-		self.left, self.top = self.left_top = island_map.left_top
-		self.right, self.bottom = self.right_bottom = island_map.right_bottom
 
 	def survey(self):
-		first, last = None, None
-		for i in range(self.left, self.right):
-			for j in range(self.top, self.bottom):
-				color = self.island_map.get(i, j)
+		rows, cols = self.island_map.rows, self.island_map.cols
+		for i in range(rows):
+			row, first, last = None, None, None
+			for j in range(cols):
+				color = self.island_map.get(i, j).color
 				if not color == Color.BLUE:
-					if first == None:
-						first = Pixel((i, j), color)
+					if row == None:
+						row = i
+						first = j
 					else:
-						last = Pixel((i, j), color)
-			if not first == None and not last == None:
-				self.fill(first, last)
-			first, last = None, None
-
-	def fill(self, first, last):
-		left, top = first.point
-		right = last.x
-		prv_color = first.color
-		for i in range(left+1, right):
-			color = self.island_map.get(i, top)
+						last = j
+			if not row == None and not last == None:
+				self.fill(row, first, last)
+			
+	def fill(self, row, first, last):
+		prv_color = self.island_map.get(row, first).color
+		for j in range(first, last):
+			color = self.island_map.get(row, j).color
 			if color == Color.BLUE:
-				self.island_map.set(i, top, prv_color)
+				self.island_map.set(row, j, prv_color)
 			else:
 				prv_color = color
 
@@ -111,6 +103,7 @@ class Tile:
 class IslandMap:
 	def __init__(self, radius, tile_size):
 		self.grid = []
+		self.rows, self.cols = 0, 0
 		self.tw, self.th = self.tile_size = tile_size
 		self.color_map = ColorMap(self.left_top, self.size, radius)
 		self.map_fill = MapFill(self)
@@ -132,12 +125,16 @@ class IslandMap:
 				index += 1
 
 	def get(self, i, j):
-		print(i*len(range(self.top, self.bottom, self.th)) + j)
-		return self.grid[i*len(range(self.top, self.bottom, self.th)) + j]
+		return self.grid[self.get_index(i, j)]
 
 	def set(self, i, j, color):
-		print(i*len(range(self.top, self.bottom, self.th)) + j)
-		self.grid[i*len(range(self.top, self.bottom, self.th)) + j].color = color
+		self.grid[self.get_index(i, j)].color = color
+
+	def get_index(self, i, j):
+		index = i*self.cols + j
+		if index >= len(self.grid):
+			print('i: {}, j: {}, rows: {}, cols: {}, index: {}, len(grid): {}'.format(i, j, self.rows, self.cols, index, len(self.grid)))
+		return index
 
 	def refresh(self, size):
 		self.center_on(tuple(x // 2 for x in size))
@@ -148,11 +145,14 @@ class IslandMap:
 		self.generate()
 
 	def generate(self):
+		self.rows, self.cols = len(range(self.left, self.right, self.tw)), len(range(self.top, self.bottom, self.th))
 		color_left, color_top = self.color_map.left_top
 		for i in range(self.left, self.right, self.tw):
 			for j in range(self.top, self.bottom, self.th):
 				color = self.color_map.get(color_left, color_top)
 				self.grid.append(Tile((i, j), self.tile_size, color))
+				if i == 120 and j == 640:
+					print('i: {}, j: {}, len(grid): {}'.format(i, j, len(self.grid)))
 				color_top += self.th
 			color_top = self.color_map.top
 			color_left += self.tw

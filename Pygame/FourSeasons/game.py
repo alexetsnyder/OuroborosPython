@@ -1,21 +1,15 @@
 #game.py
 import controls
 import pygame, time
-import events, imp, go
-import four_seasons as fs
+import events, imp, go, cards
 from structs import *
 
 #ToDo:
-# 1) Quick Click (click on a card and it is placed on a tile).
-# 2) Timer.
-# 3) Score.
-# 4) Refactor foundation tile background.
-# 5) Only winable hands.
-# 6) One list to draw everything.
-# 7) Center the game better.
-# 8) At Zero cards text and deck picture disappear
-# 9) Debug Print.
-#10) Put data in data file.
+# 1) Better winable hands.
+# 2) At Zero cards text and deck picture disappear
+# 3) Debug Print.
+# 4) Faster Dragging.
+# 5) Popup window.
 
 class Screen:
 	def __init__(self, size):
@@ -51,10 +45,10 @@ class Game:
 		self.SEC_PER_FRAME = 1 / 60
 		self.center = tuple(x // 2 for x in self.size)
 		self.title = imp.IMP().config.try_get('GAME_NAME', 'Default Name')
-		self.card_table = fs.CardTable((0, 0), self.size, margins=imp.IMP().config.try_get('CARD_TABLE_MARGINS', (0, 0)))
+		self.card_table = cards.CardTable((0, 0), self.size, margins=imp.IMP().config.try_get('CARD_TABLE_MARGINS', (0, 0)))
 		self.pause_text = go.RenderText('Paused!', font_info=go.FontInfo(60, Color.BLUE), is_visible=False)
 		self.pause_text.center_on(self.center)
-		self.create_side_bar()
+		self.create_side_bars()
 		self.wire_events()
 		self.set_title()	
 
@@ -67,9 +61,14 @@ class Game:
 		imp.IMP().add_delegate(events.UserEvent(CustomEvent.REDO_STACK_CLEARED).listen(self.on_redo_undo_changed))
 		imp.IMP().add_delegate(events.UserEvent(CustomEvent.UNDO_ENABLED).listen(self.on_redo_undo_changed))
 		imp.IMP().add_delegate(events.UserEvent(CustomEvent.REDO_ENABLED).listen(self.on_redo_undo_changed))
+		imp.IMP().add_delegate(events.UserEvent(CustomEvent.UPDATE_SCORE).listen(self.on_update_score))
 
-	def create_side_bar(self):
-		buttons = []
+	def create_side_bars(self):
+		self.create_left_side_bar()
+		self.create_right_side_bar()
+
+	def create_left_side_bar(self):
+		left_controls = []
 		self.restart_btn = controls.Button('Restart', self.restart)
 		self.new_game_btn = controls.Button('New Game', self.new_game)
 		self.undo_btn = controls.Button('Undo', self.undo)
@@ -79,12 +78,22 @@ class Game:
 		self.undo_btn.set_enabled(False)
 		self.redo_btn.set_enabled(False)
 		self.pause_btn.set_enabled(False)
-		buttons.append(self.restart_btn)
-		buttons.append(self.new_game_btn)
-		buttons.append(self.undo_btn)
-		buttons.append(self.redo_btn)
-		buttons.append(self.pause_btn)
-		self.side_bar = controls.SideBar(self.h, controls=buttons)
+		left_controls.append(self.restart_btn)
+		left_controls.append(self.new_game_btn)
+		left_controls.append(self.undo_btn)
+		left_controls.append(self.redo_btn)
+		left_controls.append(self.pause_btn)
+		self.left_side_bar = controls.SideBar(self.size, WindowSide.LEFT, controls=left_controls)
+
+	def create_right_side_bar(self):
+		right_controls = []
+		self.stop_watch = controls.StopWatch()
+		self.score_display = controls.CounterBox(4)
+		self.check_box = controls.CheckBox('Winnable Hands', on_checked=self.on_checked)
+		right_controls.append(self.stop_watch)
+		right_controls.append(self.score_display)
+		right_controls.append(self.check_box)
+		self.right_side_bar = controls.SideBar(self.size, WindowSide.RIGHT, controls=right_controls)
 
 	def new_game(self, event):
 		self.un_pause()
@@ -120,6 +129,9 @@ class Game:
 			is_enabled = True
 		self.redo_btn.set_enabled(is_enabled)
 
+	def on_checked(self, event):
+		events.UserEvent(CustomEvent.WINNABLE_HANDS).post(winnable_hands=self.check_box.is_checked)
+
 	def set_title(self):
 		imp.IMP().screen.set_title(self.title)
 
@@ -135,10 +147,12 @@ class Game:
 		self.pause_text.center_on(self.center)
 
 	def on_pause(self, event):
+		self.stop_watch.stop()
 		self.pause()
 
 	def on_game_over(self, event):
 		imp.IMP().actions.clear()
+		self.stop_watch.stop()
 		self.pause_text.set_text('Winner!')
 		self.pause_text.center_on(self.center)
 		self.pause_btn.set_enabled(False)
@@ -146,6 +160,9 @@ class Game:
 
 	def on_redo_undo_changed(self, event):
 		self.toggle_undo_redo()
+
+	def on_update_score(self, event):
+		self.score_display.increment(event.inc)
 
 	def pause(self):
 		events.UserEvent(CustomEvent.PAUSE).post()
@@ -155,6 +172,9 @@ class Game:
 			self.previous = time.time()
 
 	def un_pause(self):
+		self.score_display.reset()
+		self.stop_watch.reset()
+		self.stop_watch.start()
 		self.pause_text.set_text('Paused!')
 		self.pause_text.center_on(self.center)
 		if self.is_paused:
@@ -170,14 +190,16 @@ class Game:
 
 	def update(self):
 		self.card_table.update()
-		self.side_bar.update()
+		self.left_side_bar.update()
+		self.right_side_bar.update()
 
 	def draw(self):
 		screen = imp.IMP().screen 
 		screen.fill(Color.TEAL_FELT)
 		self.card_table.draw(screen.surface)
 		self.pause_text.draw(screen.surface)
-		self.side_bar.draw(screen.surface)
+		self.left_side_bar.draw(screen.surface)
+		self.right_side_bar.draw(screen.surface)
 		screen.flip()
 
 	def free(self):
@@ -202,7 +224,7 @@ if __name__=='__main__':
 	from config import Config 
 
 	actions = acts.UndoActions()
-	config = Config('data_file.txt')
+	config = Config('data/config_file.txt')
 	event_dispatcher = events.EventDispatcher()
 	screen = Screen(config.try_get('WINDOW_SIZE', (640, 400)))
 	debug = config.try_get('DEBUG', False)

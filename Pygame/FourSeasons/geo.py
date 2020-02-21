@@ -3,7 +3,7 @@
 def plottable(cls):
 	class PlottableClass (cls):
 		def __init__(self, *args, margins=(0, 0), **kargs):
-			self.m_w, self.m_h = margins
+			self.m_w, self.m_h = self.margins = margins
 			super().__init__(*args, **kargs)
 
 		def set_size(self, size):

@@ -1,33 +1,13 @@
 #four_seasons.py
-import go, imp, events, acts
+import go, imp, events, acts, fs
 import pygame, random, time, sys
 from pygame import freetype
 from structs import *
 from geo import plottable, Vector
 
-def pause_events_class(cls):
-	class ClassWrapper (cls):
-		def __init__(self, *args, **kargs):
-			self.is_paused = True
-			super().__init__(*args, **kargs)
-
-		def on_pause(self, event):
-			self.is_paused = not self.is_paused
-
-		def wire_events(self):
-			super().wire_events()
-			imp.IMP().add_delegate(events.UserEvent(CustomEvent.PAUSE).listen(self.on_pause))
-	return ClassWrapper
-
-def pause_events_method(func):
-	def func_wrapper(self, event):
-		if not self.is_paused:
-			func(self, event)
-	return func_wrapper
-
-@pause_events_class
+@events.pause_events_class
 class Card:
-	SOURCE_FOLDER = 'Cards'
+	SOURCE_FOLDER = 'data/Cards'
 	CARD_BACK_IMAGE_FILE = 'cardBack_red5.png'
 	SUIT_FONT = 'segoeuisymbol'
 
@@ -39,10 +19,10 @@ class Card:
 		self.value = card_val
 		self.tile_index = tile_index
 		self.is_showing = is_showing
-		self.card_str = CARD_LETTERS[self.value]
-		self.suit_char = SUITS_CHAR[suit]
-		self.suit_str = SUITS_STR[suit] 
-		self.suit_color = SUITS_COLOR[suit]
+		self.card_str = CARD_VAL_TO_STR[self.value]
+		self.suit_char = SUIT_TO_CHAR[suit]
+		self.suit_str = SUIT_TO_STR[suit] 
+		self.suit_color = SUIT_TO_COLOR[suit]
 		self.rect = go.Rect((0, 0), (0, 0), is_visible=False)
 		self.card_back = pygame.image.load('{0}/{1}'.format(Card.SOURCE_FOLDER, Card.CARD_BACK_IMAGE_FILE)).convert()
 		self.card_front = pygame.image.load('{0}/card{1}{2}.png'.format(Card.SOURCE_FOLDER, self.suit_str, self.card_str)).convert()
@@ -53,9 +33,9 @@ class Card:
 
 	def wire_events(self):
 		imp.IMP().add_delegate(events.UserEvent(CustomEvent.CARD_MOTION).listen(self.on_card_motion, quell=True))
-		imp.IMP().add_delegate(events.MouseLeftButtonUpEvent().listen(self.on_mouse_left_button_up, quell=True))
+		imp.IMP().add_delegate(events.UserEvent(CustomEvent.CARD_DROPPED).listen(self.on_card_dropped))
 
-	@pause_events_method
+	@events.pause_events_method
 	def on_card_motion(self, event):
 		if self.is_selected:
 			new_pos = event.pos 
@@ -63,10 +43,11 @@ class Card:
 			self.move(v.v0, v.v1)
 			self.mouse_pos = new_pos
 
-	@pause_events_method
-	def on_mouse_left_button_up(self, event):
+	@events.pause_events_method
+	def on_card_dropped(self, event):
 		if self.is_selected:
 			events.UserEvent(CustomEvent.CARD_LAYED).post(card=self)
+			self.is_selected = False
 
 	def select(self, mouse_pos):
 		self.is_selected = True
@@ -115,47 +96,52 @@ class Card:
 def reverse(l):
 	return [l[j] for j in range(len(l) - 1, -1, -1)]
 
-@pause_events_class
+@events.pause_events_class
 class Deck:
-	SUIT_COUNT  = 4
-	DEALT_CARDS = 7
-	CARD_COUNT  = 13
-
 	def __init__(self):
 		self.seed = -1
 		self.deck = []
 		self.active_cards = []
-		self.create()
+		self.shuffler = fs.Shuffler()
+		self.winnable_hands = False
+		self.deal_order = imp.IMP().config.try_get('NEW_DEAL', [])
 		self.wire_events()
 
 	def wire_events(self):
 		imp.IMP().add_delegate(events.UserEvent(CustomEvent.TILE_CLICKED).listen(self.on_tile_clicked))
+		imp.IMP().add_delegate(events.UserEvent(CustomEvent.TILE_DBL_CLICKED).listen(self.on_tile_dbl_clicked))
 		imp.IMP().add_delegate(events.UserEvent(CustomEvent.NEW_DEAL).listen(self.on_new_deal))
 		imp.IMP().add_delegate(events.UserEvent(CustomEvent.RESTART).listen(self.on_restart))
 		imp.IMP().add_delegate(events.UserEvent(CustomEvent.DRAW_ONE).listen(self.on_draw_one))
 		imp.IMP().add_delegate(events.UserEvent(CustomEvent.CARD_TABLE_RESIZED).listen(self.on_card_table_resized))
+		imp.IMP().add_delegate(events.UserEvent(CustomEvent.WINNABLE_HANDS).listen(self.on_winnable_hands))
 
-	@pause_events_method
+	def on_winnable_hands(self, event):
+		self.winnable_hands = event.winnable_hands
+
+	@events.pause_events_method
 	def on_draw_one(self, event):
 		if len(self.active_cards) < len(self.deck):
 			next_index = len(self.active_cards)
 			next_card = self.deck[next_index]
 			self.active_cards.append(next_index)
-			remaining = len(self.deck) - len(self.active_cards)
 			event.discard_tile.lay(next_card)
-			event.deck_tile.update_text(str(remaining))
-			print('Action> Next Card: (#{} {}) and {} Left.'.format(next_index, next_card, remaining))
+			self.update_remaining(event.deck_tile)
+			events.UserEvent(CustomEvent.UPDATE_SCORE).post(inc=-1)
+			print('Action> Next Card: (#{} {})'.format(next_index, next_card))
 			undo_args = (next_index, next_card, event.deck_tile, event.discard_tile)
 			undo_action = acts.UndoAction(self.undo_draw, self.redo_draw, *undo_args)
 			imp.IMP().actions.post(undo_action)
 
 	def on_new_deal(self, event):
 		self.new_deal(event.tiles)
+		self.update_remaining(event.deck_tile)
 
 	def on_restart(self, event):
 		self.restart(event.tiles)
+		self.update_remaining(event.deck_tile)
 
-	@pause_events_method
+	@events.pause_events_method
 	def on_tile_clicked(self, event):
 		for i in reverse(self.active_cards):
 			card = self.deck[i]
@@ -163,6 +149,16 @@ class Deck:
 				self.active_cards.remove(i)
 				self.active_cards.append(i)
 				card.select(event.pos)
+				break
+
+	@events.pause_events_method
+	def on_tile_dbl_clicked(self, event):
+		for i in reverse(self.active_cards):
+			card = self.deck[i]
+			if card.tile_index == event.tile.index:
+				self.active_cards.remove(i)
+				self.active_cards.append(i)
+				events.UserEvent(CustomEvent.QUICK_LAY).post(card=card)
 				break
 
 	def on_card_table_resized(self, event):
@@ -173,29 +169,31 @@ class Deck:
 
 	def undo_draw(self, index, card, deck_tile, discard_tile):
 		discard_tile.remove(card)
+		events.UserEvent(CustomEvent.UPDATE_SCORE).post(inc=-1)
 		self.active_cards.remove(index)
 		deck_tile.update_text(str(len(self.deck) - len(self.active_cards)))
 		print('UndoAction> (#{} {}) {} Left'.format(index, card, len(self.deck) - len(self.active_cards)))
 
 	def redo_draw(self, index, card, deck_tile, discard_tile):
 		self.active_cards.append(index)
+		events.UserEvent(CustomEvent.UPDATE_SCORE).post(inc=-1)
 		discard_tile.lay(card)
 		deck_tile.update_text(str(len(self.deck) - len(self.active_cards)))
 		print('RedoAction> (#{} {}) {} Left'.format(index, card, len(self.deck) - len(self.active_cards)))
 
-	def create(self):
-		for suit in range(Deck.SUIT_COUNT):
-			for i in range(1, Deck.CARD_COUNT + 1):
-				self.deck.append(Card(i, suit, DeckTile.INDEX))
-
-	def shuffle_seed(self):
-		self.seed = time.time()
-		random.seed(self.seed)
+	def update_remaining(self, deck_tile):
+		remaining = len(self.deck) - len(self.active_cards)
+		deck_tile.update_text(str(remaining))
 
 	def shuffle(self):
-		self.shuffle_seed()
-		self.print_seed()
-		random.shuffle(self.deck)
+		shuffle_state = None
+		if self.winnable_hands:
+			shuffle_state = self.shuffler.winnable_hand() 
+		else: 
+			shuffle_state = self.shuffler.random_hand()
+		self.deck = shuffle_state.convert(Card, -1)
+		for card in self.deck:
+			card.is_paused = False
 
 	def restart(self, tiles):
 		return self.deal(tiles)
@@ -206,27 +204,17 @@ class Deck:
 
 	def deal(self, tiles):
 		self.reset()
-		deck_tile = tiles[DeckTile.INDEX]
-		self.draw_card(self.deck[0], tiles[FoundationTile.INDEXES[0]])
-		events.UserEvent(CustomEvent.FIRST_CARD).post(card=self.deck[0])
-		for i in range(1, Deck.DEALT_CARDS - 1):
-			self.draw_card(self.deck[i], tiles[TableueTile.INDEXES[i - 1]])
-		self.draw_card(self.deck[Deck.DEALT_CARDS - 1], tiles[DiscardTile.INDEX])
-		self.active_cards += [i for i in range(Deck.DEALT_CARDS)]
-		deck_tile.update_text(str(len(self.deck) - len(self.active_cards)))
+		for i in range(len(self.deal_order)):
+			index = self.deal_order[i]
+			tiles[index].lay(self.deck[i])
+			self.active_cards.append(i)
 		return self
-
-	def draw_card(self, card, tile):
-		tile.lay(card)
 
 	def reset(self):
 		self.active_cards.clear()
 		for card in self.deck:
 			card.tile_index = -1
 			card.is_showing = False
-
-	def print_seed(self):
-		print('Seed: {0}'.format(self.seed))
 
 	def update(self):
 		for i in self.active_cards:
@@ -237,7 +225,6 @@ class Deck:
 			self.deck[i].draw(surface)
 
 @plottable
-@pause_events_class
 class CardTile:
 	def __init__(self, left_top, size, index, is_visible=True, border=2):
 		self.cards = []
@@ -279,6 +266,9 @@ class CardTile:
 	def remove(self, card):
 		self.cards.remove(card)
 
+	def reset(self):
+		self.cards.clear()
+
 	def update(self):
 		self.rect.update()
 
@@ -287,7 +277,6 @@ class CardTile:
 		if imp.IMP().debug:
 			self.text.draw(surface)
 
-@pause_events_class
 class DeckTile (CardTile):
 	INDEX = 0
 
@@ -339,7 +328,6 @@ class FoundationTile (CardTile):
 		font_info = go.FontInfo(font_size=self.font_size, font_name=Card.SUIT_FONT, font_color=Color.BLACK)
 		self.card_value_text_top = go.RenderText('', is_visible=False, font_info=font_info)
 		self.card_value_text_bottom = go.RenderText('', is_visible=False, font_info=font_info) 
-		self.suits_list = [Suits.HEARTS, Suits.CLUBS, Suits.SPADES, Suits.DIAMONDS]
 		self.creat_suit_emblem()
 		self.wire_events()
 
@@ -348,9 +336,9 @@ class FoundationTile (CardTile):
 		self.postion_suit_emblem()
 
 	def creat_suit_emblem(self):
-		for suit in self.suits_list:
-			font_info = go.FontInfo(font_size=self.font_size, font_color=SUITS_COLOR[suit], font_name=Card.SUIT_FONT) 
-			self.foundation_suit_texts.append(go.RenderText(SUITS_CHAR[suit], font_info=font_info))
+		for suit in SUITS:
+			font_info = go.FontInfo(font_size=self.font_size, font_color=SUIT_TO_COLOR[suit], font_name=Card.SUIT_FONT) 
+			self.foundation_suit_texts.append(go.RenderText(SUIT_TO_CHAR[suit], font_info=font_info))
 
 	def postion_suit_emblem(self):
 		center_signs = ((-1, -1), (1, -1), (-1, 1), (1, 1))
@@ -380,22 +368,32 @@ class FoundationTile (CardTile):
 	def update_foundation_text(self):
 		card_str = self.first_card.card_str
 		self.card_value_text_top.set_text(card_str)
-		self.card_value_text_top.set_position((self.left + 2, self.top + 3))
+		self.card_value_text_top.set_position((self.left + 3, self.top + 3))
 		self.card_value_text_bottom.set_text(card_str)
 		w, h = self.card_value_text_bottom.size
-		self.card_value_text_bottom.set_position((self.right - w - 2, self.bottom - h - 3))
+		self.card_value_text_bottom.set_position((self.right - w - 3, self.bottom - h - 3))
 
 	def can_lay(self, card):
 		if any(self.cards):
 			prv_card = self.cards[-1]
-			if card.suit == prv_card.suit and card.value - 1 == prv_card.value or card.value == 1 and prv_card.value == 13:
-				return True
+			if card.suit == prv_card.suit:
+				if card.value - 1 == prv_card.value or card.value == 1 and prv_card.value == 13:
+					return True
 		elif self.first_card.value == card.value:
 			return True
 		return False
 
+	def lay(self, card):
+		if self.first_card == None:
+			events.UserEvent(CustomEvent.FIRST_CARD).post(card=card)
+		super().lay(card)
+
 	def is_complete(self):
-		return len(self.cards) == Deck.CARD_COUNT
+		return len(self.cards) == fs.Shuffler.CARDS_PER_SUIT
+
+	def reset(self):
+		super().reset()
+		self.first_card = None
 
 	def draw(self, surface):
 		super().draw(surface)
@@ -404,38 +402,128 @@ class FoundationTile (CardTile):
 		for suit_text in self.foundation_suit_texts:
 			suit_text.draw(surface)
 
-@pause_events_class
-class CardTiles:
-	def __init__(self, left_top, table_size, margins):
+@plottable
+@events.pause_events_class
+class CardTable:
+	def __init__(self, left_top, size):
+		self.click_time = 0
+		self.tile_info = {}
+		self.card_tiles = [] 
+		self.mouse_clicks = []
+		self.mouse_unclicks = []
+		self.mw, self.mh = self.margins
+		self.tile_width, self.tile_height = self.tile_size = (0, 0)
 		self.rows = imp.IMP().config.try_get('GRID_ROWS', 0)
 		self.cols = imp.IMP().config.try_get('GRID_COLS', 0)
 		self.card_size_ratio = imp.IMP().config.try_get('CARD_SIZE_RATIO', 0.0).solution
-		self.tile_info = {}
-		self.card_tiles = [] 
-		self.parse_tiles()
-		self.mw, self.mh = margins
-		self.tile_width, self.tile_height = self.tile_size = (0, 0)
-		self.fill(*left_top, *table_size)
+		self.deck = Deck()			
+		self.parse_tiles()	
+		self.fill(*left_top, *size)	
+		self.set_size(size)
+		self.set_position(left_top)
 		self.wire_events()
 
+	def set_size(self, size):
+		pass
+
+	def set_position(self, left_top):
+		pass
+
 	def wire_events(self):
+		imp.IMP().add_delegate(events.WindowResizedEvent().listen(self.on_resize))
+		imp.IMP().add_delegate(events.MouseMotionEvent().listen(self.on_mouse_motion, quell=True))
 		imp.IMP().add_delegate(events.MouseLeftButtonDownEvent().listen(self.on_mouse_left_button_down))
+		imp.IMP().add_delegate(events.MouseLeftButtonUpEvent().listen(self.on_mouse_left_button_up))
+		imp.IMP().add_delegate(events.UserEvent(CustomEvent.QUICK_LAY).listen(self.on_quick_lay))
 		imp.IMP().add_delegate(events.UserEvent(CustomEvent.CARD_LAYED).listen(self.on_card_layed))
 
-	@pause_events_method
-	def on_mouse_left_button_down(self, event):
-		print('on_mouse_left_button_down')
-		for tile in self.find_all(lambda x : not x == BlankTile.INDEX and not x == DeckTile.INDEX):
-			if tile.is_within(event.pos):
-				events.UserEvent(CustomEvent.TILE_CLICKED).post(tile=tile, pos=event.pos)
-				break
-		else:
-			deck_tile = self.get_deck_tile()
-			if deck_tile.is_within(event.pos):
-				discard_tile = self.get_discard_tile()
-				events.UserEvent(CustomEvent.DRAW_ONE).post(deck_tile=deck_tile, discard_tile=discard_tile)
+	def on_resize(self, event):
+		new_size = (event.w, event.h)
+		self.set_size(new_size)
+		self.set_position(self.origin)
+		self.resize(*self.origin, *new_size)
+		events.UserEvent(CustomEvent.CARD_TABLE_RESIZED).post(tiles=self.find_all())
 
-	@pause_events_method
+	@events.pause_events_method
+	def on_mouse_motion(self, event):
+		events.UserEvent(CustomEvent.CARD_MOTION).post(pos=event.pos)
+
+	@events.pause_events_method
+	def on_mouse_left_button_down(self, event):
+		self.click_time = time.time()
+		self.mouse_clicks.append(event.pos)
+
+	@events.pause_events_method
+	def on_mouse_left_button_up(self, event):
+		self.mouse_unclicks.append(event.pos)
+
+	def process_click(self):
+		delta_time = time.time() - self.click_time	
+		if len(self.mouse_clicks) > 1:
+			self.mouse_unclicks.clear()
+			mouse_pos = self.mouse_clicks.pop()
+			self.mouse_clicks.pop()
+			self.post_tile_dbl_clicked(mouse_pos)
+		elif delta_time > 0.30 and any(self.mouse_clicks):
+			mouse_pos = self.mouse_clicks.pop()
+			self.post_tile_clicked(mouse_pos)
+
+	def process_unclick(self):
+		if not any(self.mouse_clicks) and any(self.mouse_unclicks):
+			mouse_pos = self.mouse_unclicks.pop()
+			events.UserEvent(CustomEvent.CARD_DROPPED).post(pos=mouse_pos)
+
+	def post_tile_dbl_clicked(self, mouse_pos):
+		tile = self.get_clicked_tile(mouse_pos)
+		if not tile == None and not tile.index == DeckTile.INDEX:
+			events.UserEvent(CustomEvent.TILE_DBL_CLICKED).post(tile=tile)
+
+	def post_tile_clicked(self, mouse_pos):
+		tile = self.get_clicked_tile(mouse_pos)
+		if not tile == None:
+			if tile.index == DeckTile.INDEX:
+				discard_tile = self.get_discard_tile()
+				events.UserEvent(CustomEvent.DRAW_ONE).post(deck_tile=tile, discard_tile=discard_tile)
+			else:
+				events.UserEvent(CustomEvent.TILE_CLICKED).post(tile=tile, pos=mouse_pos)
+
+	def get_clicked_tile(self, mouse_pos):
+		for tile in self.find_all(lambda x : not x == BlankTile.INDEX):
+			if tile.is_within(mouse_pos):
+				return tile 
+		return None
+
+	def find_tile_to_lay(self, card):
+		tableue_tiles = []
+		for tile in self.find_all(lambda x : not x in [BlankTile.INDEX, DiscardTile.INDEX, DeckTile.INDEX]):
+			if tile.can_lay(card):
+				if tile.index in FoundationTile.INDEXES:
+					return tile 
+				tableue_tiles.append(tile)
+		if any(tableue_tiles):
+			return tableue_tiles[0]
+		return None
+
+	@events.pause_events_method
+	def on_quick_lay(self, event):
+		card = event.card 
+		tile = self.find_tile_to_lay(card)
+		source_tile = self.card_tiles[card.tile_index]
+		if not tile == None:
+			source_tile.pop()
+			tile.lay(card)
+			if not tile.index == source_tile.index:
+				self.post_score_update(tile.index)
+				print('Action> {} -> {} -> {}'.format(source_tile.index, card, tile))
+				undo_args = (source_tile, tile, card)
+				undo_action = acts.UndoAction(self.undo_card_layed, self.redo_card_layed, *undo_args)
+				imp.IMP().actions.post(undo_action)
+			else:
+				print('NonAction> {} <- {}'.format(source_tile, card))
+			if self.check_win():
+				events.UserEvent(CustomEvent.GAME_OVER).post()
+
+	@events.pause_events_method
 	def on_card_layed(self, event):
 		selected_card = event.card
 		if not selected_card == None:
@@ -448,26 +536,34 @@ class CardTiles:
 						max_area = area
 						selected_tile = tile
 			original_tile.pop()
-			if selected_tile.can_lay(selected_card):
+			if not selected_tile.index == original_tile and selected_tile.can_lay(selected_card):
+				self.post_score_update(selected_tile.index)
 				print('Action> {} -> {} -> {}'.format(original_tile.index, selected_card, selected_tile))
 				selected_tile.lay(selected_card)
-				if not selected_tile.index == original_tile.index:
-					undo_args = (original_tile, selected_tile, selected_card)
-					undo_action = acts.UndoAction(self.undo_card_layed, self.redo_card_layed, *undo_args)
-					imp.IMP().actions.post(undo_action)
+				undo_args = (original_tile, selected_tile, selected_card)
+				undo_action = acts.UndoAction(self.undo_card_layed, self.redo_card_layed, *undo_args)
+				imp.IMP().actions.post(undo_action)
 			else:
 				print('NonAction> {} <- {}'.format(original_tile, selected_card))
 				original_tile.lay(selected_card)
 			if self.check_win():
 				events.UserEvent(CustomEvent.GAME_OVER).post()
 
+	def post_score_update(self, index):
+		if index in FoundationTile.INDEXES:
+			events.UserEvent(CustomEvent.UPDATE_SCORE).post(inc=10)
+		else:
+			events.UserEvent(CustomEvent.UPDATE_SCORE).post(inc=-5)
+
 	def undo_card_layed(self, source_tile, dest_tile, card):
 		print('UndoAction> {} <- {} <- {}'.format(source_tile, card, dest_tile.index))
+		events.UserEvent(CustomEvent.UPDATE_SCORE).post(inc=-1)
 		dest_tile.remove(card)
 		source_tile.lay(card)
 
 	def redo_card_layed(self, source_tile, dest_tile, card):
 		print('RedoAction> {} -> {} -> {}'.format(source_tile.index, card, dest_tile))
+		events.UserEvent(CustomEvent.UPDATE_SCORE).post(inc=-1)
 		source_tile.remove(card)
 		dest_tile.lay(card)
 
@@ -480,9 +576,6 @@ class CardTiles:
 
 	def get_discard_tile(self):
 		return self.card_tiles[DiscardTile.INDEX]
-
-	def get_deck_tile(self):
-		return self.card_tiles[DeckTile.INDEX]
 
 	def parse_tiles(self):
 		tile_dict = imp.IMP().config.try_get('CARD_TILES', {})
@@ -538,57 +631,9 @@ class CardTiles:
 		self.resize(left, top, w, h)
 
 	def refill(self, left_top, new_size):
-		self.card_tiles.clear()
+		for tile in self.card_tiles:
+			tile.reset()
 		self.fill(*left_top, *new_size)
-
-	def reset(self):
-		for tile in self.card_tiles:
-			tile.cards.clear()
-
-	def find(self, index):
-		return self.card_tiles[index]
-
-	def find_all(self, filter=(lambda x : True)):
-		return [tile for i, tile in enumerate(self.card_tiles) if filter(i)]
-
-	def update(self):
-		for tile in self.card_tiles:
-			tile.update()
-
-	def draw(self, surface):
-		for tile in self.card_tiles:
-			tile.draw(surface)
-
-@plottable
-@pause_events_class
-class CardTable:
-	def __init__(self, left_top, size):
-		self.card_tiles = CardTiles(left_top, size, (self.m_w, self.m_h)) 
-		self.deck = Deck()
-		self.set_size(size)
-		self.set_position(left_top)
-		self.wire_events()	
-
-	def set_size(self, size):
-		pass
-
-	def set_position(self, left_top):
-		pass
-
-	def wire_events(self):
-		imp.IMP().add_delegate(events.WindowResizedEvent().listen(self.on_resize))
-		imp.IMP().add_delegate(events.MouseMotionEvent().listen(self.on_mouse_motion, quell=True))
-		
-	def on_resize(self, event):
-		new_size = (event.w, event.h)
-		self.set_size(new_size)
-		self.set_position(self.origin)
-		self.card_tiles.resize(*self.origin, *new_size)
-		events.UserEvent(CustomEvent.CARD_TABLE_RESIZED).post(tiles=self.card_tiles.find_all())
-
-	@pause_events_method
-	def on_mouse_motion(self, event):
-		events.UserEvent(CustomEvent.CARD_MOTION).post(pos=event.pos)
 
 	def restart(self):
 		self.reset(CustomEvent.RESTART)
@@ -598,16 +643,27 @@ class CardTable:
 
 	def reset(self, event):
 		imp.IMP().actions.clear()
-		self.card_tiles.reset()
-		events.UserEvent(event).post(tiles=self.card_tiles.find_all())
+		for tile in self.card_tiles:
+			tile.reset()
+		events.UserEvent(event).post(tiles=self.find_all(), deck_tile=self.find(DeckTile.INDEX))
+
+	def find(self, index):
+		return self.card_tiles[index]
+
+	def find_all(self, filter=(lambda x : True)):
+		return [tile for i, tile in enumerate(self.card_tiles) if filter(i)]
 
 	def update(self):
-		self.card_tiles.update()
+		self.process_click()
+		self.process_unclick()
+		for tile in self.card_tiles:
+			tile.update()
 		self.deck.update()
 
 	def draw(self, surface):
-		self.card_tiles.draw(surface)
-		self.deck.draw(surface)
+		for tile in self.card_tiles:
+			tile.draw(surface)
+		self.deck.draw(surface)		
 
 if __name__=='__main__':
 	pass

@@ -4,6 +4,7 @@ from structs import *
 
 class Control:
 	def __init__(self, left_top, size, is_visible=True, is_enabled=True, enabled_color=Color.ALICE_BLUE, disabled_color=Color.LIGHT_GREY):
+		self.mw, self.mh = self.margins = (8, 8)
 		self.enabled_color = enabled_color
 		self.disabled_color = disabled_color
 		self.set_enabled(is_enabled)
@@ -17,6 +18,8 @@ class Control:
 	def set_position(self, left_top):
 		self.left, self.top = self.left_top = left_top
 		self.right, self.bottom = self.right_bottom = self.left + self.w, self.top + self.h 
+		self.left_bottom = self.left, self.bottom 
+		self.right_top = self.right, self.top 
 		self.x, self.y = self.center = self.left + self.w // 2, self.top + self.h // 2
 
 	def set_visibility(self, is_visible):
@@ -43,13 +46,12 @@ class Control:
 
 class Button (Control):
 	def __init__(self, text, on_click=None, left_top=(0, 0), min_size=(0, 0), text_color=Color.BLACK, text_size=10, active_color=Color.RED, is_visible=True, is_enabled=True):
-		self.margin_w, self.margin_h = (8, 8)
 		self.is_active = False
 		self.on_click = on_click
 		self.active_color = active_color
 		self.text_color = text_color
 		self.disabled_text_color = Color.DIM_GREY
-		self.mw, self.mh = self.min_size = min_size
+		self.min_w, self.min_h = self.min_size = min_size
 		self.btn_font = go.FontInfo(font_size=text_size, font_color=text_color)
 		self.btn_txt = go.RenderText(text, self.btn_font)
 		self.btn_bck = go.Rect((0, 0), (0, 0))
@@ -84,7 +86,7 @@ class Button (Control):
 
 	def set_size(self, size):
 		w, h = size
-		fixed_size = (w + self.margin_w, h + self.margin_h)
+		fixed_size = (w + self.mw, h + self.mh)
 		super().set_size(fixed_size)
 		self.btn_bck.set_size(fixed_size)
 
@@ -99,10 +101,10 @@ class Button (Control):
 
 	def get_size(self):
 		w, h = self.btn_txt.size 
-		if self.mw > 0:
-			w = self.mw 
-		if self.mh > 0:
-			h = self.mh
+		if self.min_w > 0:
+			w = self.min_w 
+		if self.min_h > 0:
+			h = self.min_h
 		return (w, h)
 
 	def draw(self, surface):
@@ -112,10 +114,140 @@ class Button (Control):
 			self.btn_bck.draw(surface)
 			self.btn_txt.draw(surface)
 
-class SidBar (Control):
-	def __init__(self, left_top, controls=[]):
-		super().__init__(left_top, (0, 0))
+class SideBar (Control):
+	def __init__(self, controls=[], window_side=WindowSide.LEFT):	
+		self.is_expanded = False
+		self.controls = controls 
+		self.window_side = window_side
+		self.sidebar_bck = go.Rect((0, 0), (0, 0), color=Color.SEA_GREEN)
+		self.btn_expand = Button(self.get_btn_txt(), on_click=self.toggle_expand)
+		self.min_w, self.min_h = self.min_size = self.btn_expand.size 
+		super().__init__((0, 0), (0, 0), enabled_color=Color.SEA_GREEN)
+		self.set_size(self.assay_size())
+		self.set_position(self.assay_position())
 
+	def set_btn_txt(self, btn_txt):
+		self.btn_expand.set_text(btn_txt)
+		self.min_w, self.min_h = self.min_size = self.btn_expand.size 
+
+	def set_window_side(self, window_side):
+		self.window_side = window_side
+		self.set_btn_txt(self.get_btn_txt())
+		self.set_size(self.assay_size())
+		self.set_position(self.assay_position())
+
+	def set_size(self, size):
+		super().set_size(size)
+		self.sidebar_bck.set_size(size)
+
+	def set_position(self, left_top):
+		super().set_position(left_top)
+		self.btn_expand.set_position(self.get_btn_pos())
+		self.sidebar_bck.set_position(left_top)
+		self.position_controls()
+
+	def assay_size(self):
+		return (self.get_w(), self.get_h())
+
+	def assay_position(self):
+		window_w, window_h = imp.IMP().screen.size
+		#WindowSide.LEFT and WindowSide.RIGHT
+		left, top = 0, 0
+		if self.window_side == WindowSide.RIGHT:
+			left = window_w - self.w 
+		else: #self.window_side == WindowSide.BOTTOM:
+			top = window_h - self.h
+		return (left, top)
+
+	def get_btn_pos(self):
+		if self.window_side == WindowSide.LEFT:
+			return self.right_top
+		elif self.window_side == WindowSide.RIGHT:
+			return self.left_top
+		elif self.window_side == WindowSide.TOP:
+			return self.left_bottom
+		else: #self.window_side == WindowSide.BOTTOM:
+			return self.left_top
+
+	def get_btn_txt(self):
+		left_btn_text = '<<<'
+		right_btn_text = '>>>'
+		top_btn_text = '/\\'
+		bottom_btn_text = '\\/'
+		if not self.is_expanded:
+			left_btn_text, right_btn_text = right_btn_text, left_btn_text
+			top_btn_text, bottom_btn_text = bottom_btn_text, top_btn_text
+		if self.window_side == WindowSide.LEFT:
+			return left_btn_text
+		elif self.window_side == WindowSide.RIGHT:
+			return right_btn_text
+		elif self.window_side == WindowSide.TOP:
+			return top_btn_text
+		else: #self.window_side == WindowSide.BOTTOM:
+			return bottom_btn_text
+
+	def toggle_expand(self, event):
+		self.is_expanded = not self.is_expanded
+		self.set_btn_txt(self.get_btn_txt())
+		self.set_size(self.assay_size())
+		self.set_position(self.assay_position())
+
+	def is_horizontal(self):
+		return self.window_side in [WindowSide.TOP, WindowSide.BOTTOM]
+
+	def is_vertical(self):
+		return self.window_side in [WindowSide.LEFT, WindowSide.RIGHT]
+
+	def position_controls(self):
+		if self.is_vertical():
+			x = self.x
+			y = self.top + self.btn_expand.h + self.mh
+			for control in self.controls:
+				control.center_on((x, y + control.h // 2))
+				y += control.h + self.mh
+		else:
+			x = self.left + self.btn_expand.w + self.mw 
+			y = self.top
+			for control in self.controls:
+				control.center_on((x + control.w // 2, y + 3 * control.h // 4))
+				x += control.w + self.mw
+
+	def get_w(self):
+		if not self.is_expanded or not any(self.controls):
+			return self.min_w + self.mw
+		if self.is_vertical():
+			return self.get_max_width()	
+		return imp.IMP().screen.w
+
+	def get_max_width(self):
+		max_width = 0
+		for control in self.controls:
+			width = control.w
+			if width > max_width:
+				max_width = width 
+		return max_width + self.mw
+
+	def get_h(self):
+		if not self.is_expanded or not any(self.controls):
+			return self.min_h + self.mh
+		if self.is_horizontal():
+			return self.get_max_height()
+		return imp.IMP().screen.h
+
+	def get_max_height(self):
+		max_height = 0
+		for control in self.controls:
+			height = control.h
+			if height > max_height:
+				max_height = height
+		return max_height + self.mh
+
+	def draw(self, surface):
+		if self.is_visible:
+			self.sidebar_bck.draw(surface)
+			self.btn_expand.draw(surface)
+			for control in self.controls:
+				control.draw(surface)
 
 # class SideBar (Control):
 # 	def __init__(self, left_top, window_size, window_side, controls=[], color=Color.SEA_GREEN):
@@ -354,20 +486,37 @@ class SidBar (Control):
 
 if __name__=='__main__':
 	import pygame
-	import unit_test
+	import unit_test as ut
 
-	test = unit_test.UnitTest()
-	btn = Button('Hello World!', on_click=(lambda event : print('OnClick!!!')))
-	btn.center_on(tuple(x // 2 for x in unit_test.WINDOW_SIZE))
+	unit_test = ut.UnitTest()
 
-	def toggle_enabled(event):
-		btn.set_enabled(not btn.is_enabled)
+	btn_left = Button('LEFT')
+	btn_right = Button('RIGHT')
+	btn_top = Button('TOP')
+	btn_bottom = Button('BOTTOM')
 
-	def toggle_visibility(event):
-		btn.set_visibility(not btn.is_visible)
+	controls = []
+	controls.append(btn_left)
+	controls.append(btn_right)
+	controls.append(btn_top)
+	controls.append(btn_bottom)
+	sidebar = SideBar(controls, WindowSide.LEFT)
 
-	imp.IMP().add_listener(events.KeyDownEvent(pygame.K_e).listen(toggle_enabled))
-	imp.IMP().add_listener(events.KeyDownEvent(pygame.K_v).listen(toggle_visibility))
+	def set_left(event):
+		sidebar.set_window_side(WindowSide.LEFT)
+	btn_left.on_click = set_left
 
-	test.register([btn])
-	test.run()
+	def set_right(event):
+		sidebar.set_window_side(WindowSide.RIGHT)
+	btn_right.on_click = set_right
+
+	def set_top(event):
+		sidebar.set_window_side(WindowSide.TOP)
+	btn_top.on_click = set_top
+
+	def set_bottom(event):
+		sidebar.set_window_side(WindowSide.BOTTOM)
+	btn_bottom.on_click = set_bottom
+
+	unit_test.register([sidebar])
+	unit_test.run()

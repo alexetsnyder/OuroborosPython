@@ -2,35 +2,22 @@
 import go, imp, events
 from structs import *
 
-class Control:
+class Control (go.Rect):
 	def __init__(self, left_top, size, is_visible=True, is_enabled=True, enabled_color=Color.ALICE_BLUE, disabled_color=Color.LIGHT_GREY):
 		self.mw, self.mh = self.margins = (8, 8)
 		self.enabled_color = enabled_color
 		self.disabled_color = disabled_color
 		self.set_enabled(is_enabled)
 		self.set_visibility(is_visible)
+		super().__init__(left_top, size)
 		self.set_size(size)
 		self.set_position(left_top)
-
-	def set_size(self, size):
-		self.w, self.h = self.size = size 
-
-	def set_position(self, left_top):
-		self.left, self.top = self.left_top = left_top
-		self.right, self.bottom = self.right_bottom = self.left + self.w, self.top + self.h 
-		self.left_bottom = self.left, self.bottom 
-		self.right_top = self.right, self.top 
-		self.x, self.y = self.center = self.left + self.w // 2, self.top + self.h // 2
 
 	def set_visibility(self, is_visible):
 		self.is_visible = is_visible
 
 	def set_enabled(self, is_enabled):
 		self.is_enabled = is_enabled
-
-	def center_on(self, pos):
-		x, y = pos 
-		self.set_position((x - self.w // 2, y - self.h // 2))
 
 	def get_color(self):
 		if self.is_enabled:
@@ -262,6 +249,55 @@ class SideBar (Control):
 			for control in self.controls:
 				control.draw(surface)
 
+class CheckBox (Control):
+	def __init__(self, lbl_str, left_top=(0, 0), on_checked=None, color=Color.TEAL_FELT, checked_color=Color.BLACK):
+		self.is_checked = False
+		self.checked_color = checked_color
+		self.on_checked = on_checked
+		self.font_info = go.FontInfo(font_size=10, font_color=Color.BLACK)
+		self.lbl_text = go.RenderText(lbl_str, self.font_info)
+		self.check_box = go.Rect(left_top, (10, 10), color=color, width=1)
+		self.fill_box = go.Rect(left_top, (10, 10), color=checked_color)
+		super().__init__(left_top, tuple(x + 10 for x in self.lbl_text.size), enabled_color=color)
+		self.wire_events()
+
+	def wire_events(self):
+		imp.IMP().add_listener(events.MouseLeftButtonDownEvent().listen(self.on_mouse_left_button_down))
+
+	def set_position(self, left_top):
+		super().set_position(left_top)
+		self.check_box.set_position(left_top)
+		self.fill_box.set_position(left_top)
+		self.lbl_text.set_position((self.left + 12, self.top))
+		self.lbl_text.center_on((self.lbl_text.x, self.check_box.y))
+
+	def set_text(self, text):
+		self.lbl_text.set_text(text)
+		self.set_size(tuple(x + 10 for x in self.lbl_text.size))
+
+	def set_onchecked(self, method):
+		self.on_checked = method 
+
+	def on_mouse_left_button_down(self, event):
+		if self.check_box.is_within(event.pos):			
+			self.checked(event)
+
+	def checked(self, event):
+		if self.is_enabled and self.is_visible:
+			self.is_checked = not self.is_checked
+			if not self.on_checked == None:
+				self.on_checked(event)
+
+	def draw(self, surface):
+		if self.is_visible:
+			self.check_box.set_color(self.get_color())
+			self.lbl_text.set_color(self.get_color())
+			self.check_box.draw(surface)
+			if self.is_checked:
+				self.fill_box.set_color(self.get_color())
+				self.fill_box.draw(surface)
+			self.lbl_text.draw(surface)
+
 if __name__=='__main__':
 	import pygame
 	import unit_test as ut
@@ -273,6 +309,7 @@ if __name__=='__main__':
 	btn_top = Button('TOP')
 	btn_bottom = Button('BOTTOM')
 	btn_enable = Button('DISABLE')
+	chk_box = CheckBox('IS CHECKED', on_checked=lambda event: print('OnChecked'))
 
 	controls = []
 	controls.append(btn_left)
@@ -280,6 +317,7 @@ if __name__=='__main__':
 	controls.append(btn_top)
 	controls.append(btn_bottom)
 	controls.append(btn_enable)
+	controls.append(chk_box)
 	sidebar = SideBar(controls, WindowSide.LEFT)
 
 	def set_left(event):
@@ -304,6 +342,7 @@ if __name__=='__main__':
 		btn_top.set_enabled(not btn_top.is_enabled)
 		btn_bottom.set_enabled(not btn_bottom.is_enabled)
 		btn_enable.set_text('ENABLE' if not btn_left.is_enabled else 'DISABLE')
+		chk_box.set_enabled(not chk_box.is_enabled)
 	btn_enable.on_click = toggle_enable
 
 	unit_test.register([sidebar])

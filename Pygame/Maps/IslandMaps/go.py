@@ -2,48 +2,33 @@
 import pygame
 from pygame import freetype
 from structs import *
-from geo import plottable, Vector
 
-@plottable
-class BasicShape:
-	def __init__(self, color, is_visible=True):
-		self.surface = pygame.Surface(self.size)
-		self.set_color(color)
-		self.set_visibility(is_visible)
+class Rect:
+	def __init__(self, left_top, size, color=Color.SILVER, width=0):
+		self.width = width 
+		self.color = color 
+		self.set_size(size)
+		self.set_position(left_top)
 
 	def set_size(self, size):
-		if hasattr(self, 'surface'):
-			self.surface = pygame.Surface(size)
+		self.w, self.h = self.size = size 
+
+	def set_position(self, left_top):
+		self.left, self.top = self.left_top = left_top
+		self.right, self.bottom = self.right_bottom = self.left + self.w, self.top + self.h 
+		self.left_bottom = self.left, self.bottom 
+		self.right_top = self.right, self.top 
+		self.x, self.y = self.center = self.left + self.w // 2, self.top + self.h // 2
+
+	def center_on(self, pos):
+		x, y = pos 
+		self.set_position((x - self.w // 2, y - self.h // 2))
 
 	def set_color(self, color):
 		self.color = color 
 
-	def set_visibility(self, is_visible):
-		if not is_visible:
-			self.surface.set_alpha(0)
-		else:
-			self.surface.set_alpha(255)
-		self.is_visible = is_visible
-
-	def update(self):
-		pass
-
-	def clear(self, color):
-		self.surface.fill(color)
-
-	def draw_at(self, surface, position):
-		x, y = position
-		surface.blit(self.surface, (int(x), int(y)))
-		self.clear(Color.BLACK)
-
-	def draw(self, surface):
-		surface.blit(self.surface, pygame.Rect((int(self.left), int(self.top)), (int(self.w), int(self.h))))
-		self.clear(Color.BLACK)
-
-class Rect (BasicShape):
-	def __init__(self, left_top, size, width=0, color=Color.SILVER, is_visible=True):
-		self.border_width = width 
-		super().__init__(left_top, size, color, is_visible)
+	def get_area(self):
+		return self.w * self.h
 
 	def is_within(self, position):
 		x1, y1 = position
@@ -64,18 +49,9 @@ class Rect (BasicShape):
 		top = max(self.top, r2.top)
 		return Rect((left, top), (right - left, bottom - top))
 
-	def get_area(self):
-		return self.w * self.h
-
-	def draw_at(self, surface, position):
-		pygame.draw.rect(self.surface, self.color, pygame.Rect((0, 0), (int(self.w), int(self.h))), self.border_width)
-		self.set_visibility(self.is_visible)
-		super().draw_at(surface, position)
-
 	def draw(self, surface):
-		pygame.draw.rect(self.surface, self.color, pygame.Rect((0, 0), (int(self.w), int(self.h))), self.border_width)
-		self.set_visibility(self.is_visible)
-		super().draw(surface)
+		pygame.draw.rect(surface, self.color, pygame.Rect(self.left_top, self.size))
+
 
 class FontInfo:
 	def __init__(self, font_size=20, font_color=Color.SILVER, font_name='lucidaconsole'):
@@ -83,23 +59,14 @@ class FontInfo:
 		self.font_size = font_size
 		self.font_color = font_color
 
-class RenderText (BasicShape):
-	def __init__(self, text_str, font_info=FontInfo(), is_visible=True):
+class RenderText (Rect):
+	def __init__(self, text_str, font_info=FontInfo()):
 		if not freetype.get_init():
 			freetype.init()
 		self.text_str = text_str
 		self.font_info = font_info
 		self.font = self.create_font()
-		super().__init__((0, 0), self.get_size(), font_info.font_color, is_visible)
-
-	def set_visibility(self, is_visible):
-		self.is_visible = is_visible
-
-	def get_color(self):
-		if self.is_visible:
-			return self.color 
-		else: 
-			return Color.TRANSPARENT
+		super().__init__((0, 0), self.get_size(), color=font_info.font_color)
 
 	def create_font(self):
 		return freetype.SysFont(self.font_info.font_name, self.font_info.font_size)
@@ -110,6 +77,10 @@ class RenderText (BasicShape):
 
 	def set_font_size(self, value):
 		self.font_info.font_size = value 
+		self.font = self.create_font()
+
+	def set_font_name(self, font):
+		self.font_info.font_name = font 
 		self.font = self.create_font()
 
 	def set_font_info(self, font_info):
@@ -123,8 +94,5 @@ class RenderText (BasicShape):
 	def get_font_size(self):
 		return self.font_info.font_size
 
-	def draw_at(self, surface, position):
-		self.font.render_to(surface, position, self.text_str, self.get_color())
-
 	def draw(self, surface):
-		self.font.render_to(surface, self.left_top, self.text_str, self.get_color())
+		self.font.render_to(surface, self.left_top, self.text_str, self.color)

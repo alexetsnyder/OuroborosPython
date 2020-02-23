@@ -50,6 +50,10 @@ class IMP:
 	def dispatch(self, event):
 		self.event_dispatcher.invoke(event)
 
+	def update(self):
+		for obj in self.render_objects:
+			obj.update()
+
 	def draw(self):
 		for obj in self.render_objects:
 			obj.draw(self.screen.surface)

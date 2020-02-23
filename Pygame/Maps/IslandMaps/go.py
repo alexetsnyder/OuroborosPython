@@ -85,6 +85,8 @@ class FontInfo:
 
 class RenderText (BasicShape):
 	def __init__(self, text_str, font_info=FontInfo(), is_visible=True):
+		if not freetype.get_init():
+			freetype.init()
 		self.text_str = text_str
 		self.font_info = font_info
 		self.font = self.create_font()

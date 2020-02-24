@@ -4,12 +4,13 @@ import go, imp, events
 from structs import *
 
 class Window (controls.Control):
-	def __init__(self, title, left_top, size, controls=[], color=Color.LIGHT_GREY, header_color=Color.DEEP_SKY_BLUE):
+	def __init__(self, title, left_top, size, color=Color.LIGHT_GREY, header_color=Color.DEEP_SKY_BLUE):
 		self.prv_pos = (0, 0)
 		self.dragging = False
 		self.title = title 
+		self.fixed_positions = []
+		self.controls = []
 		self.title_height = 20
-		self.controls = controls
 		self.header_color = header_color
 		self.window_border = go.Rect(left_top, tuple(x + 2 for x in size), width=1)
 		self.window = go.Rect(left_top, size)
@@ -52,6 +53,20 @@ class Window (controls.Control):
 		self.header.set_position(self.left_top)
 		self.line.set_position(self.header.left_bottom)
 		self.lbl_text.center_on(self.header.center)
+		self.position_controls()
+
+	def set_controls(self, controls):
+		self.fixed_positions.clear()
+		self.controls = controls
+		for control in self.controls:
+			self.fixed_positions.append(control.left_top)
+		self.position_controls()
+
+	def position_controls(self):
+		start_top = self.top + self.title_height
+		for i, control in enumerate(self.controls):
+			left, top = self.fixed_positions[i]
+			control.set_position((self.left + left, start_top + top))
 
 	def update(self):
 		for control in self.controls:
@@ -70,6 +85,11 @@ if __name__=='__main__':
 	import unit_test
 	test = unit_test.UnitTest()
 	width, height = unit_test.WINDOW_SIZE
+	slider = controls.Slider()
+	btn_ok = controls.Button('OK', on_click=lambda event: print('Pressed Ok.'))
 	window = Window('Test Window', (width // 2 - 100, height // 2 - 100), (200, 100))
+	slider.set_position((10, 15))
+	btn_ok.set_position((200 - btn_ok.w - 5, 80 - btn_ok.h - 5)) 
+	window.set_controls([slider, btn_ok])
 	test.register([window])
 	test.run()

@@ -84,20 +84,54 @@ class Vector:
 		return new_vector
 
 class Line:
-	def __init__(self, left_top, width, thickness=1):
-		self.set_width(width)
+	def __init__(self, point1, point2, thickness=1):
 		self.thickness = thickness
-		self.set_position(left_top)
+		self.point1, self.point2 = point1, point2
+
+	def draw(self, surface, color):
+		pygame.draw.line(surface, color, self.point1, self.point2, self.thickness)
+
+class HorizontalLine:
+	def __init__(self, left_top, width, thickness=1):
+		self.width = width 
+		self.left, self.top = self.left_top = left_top
+		self.line = Line(self.left_top, (self.left + self.width, self.top))
 		
 	def set_width(self, width):
 		self.width = width 
+		self.set_line()
 
 	def set_position(self, left_top):
-		self.x, self.y = self.start = left_top
+		self.left, self.top = self.left_top = left_top
+		self.set_line()
+
+	def set_line(self):
+		self.line.point1 = self.left_top
+		self.line.point2 = (self.left + self.width, self.top)
 
 	def draw(self, surface, color):
-		end = (self.x + self.width, self.y)
-		pygame.draw.line(surface, color, self.start, end, self.thickness)
+		self.line.draw(surface, color)
+
+class VerticalLine:
+	def __init__(self, left_top, height, thickness=1):
+		self.height = height
+		self.left, self.top = self.left_top = left_top
+		self.line = Line(self.left_top, (self.left, self.top + self.height))
+		
+	def set_height(self, height):
+		self.height = height
+		self.set_line()
+
+	def set_position(self, left_top):
+		self.left, self.top = self.left_top = left_top
+		self.set_line()
+
+	def set_line(self):
+		self.line.point1 = self.left_top
+		self.line.point2 = (self.left + self.height, self.top)
+
+	def draw(self, surface, color):
+		self.line.draw(surface, color)
 
 class Rect:
 	def __init__(self, left_top, size, width=0):

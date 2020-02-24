@@ -473,7 +473,7 @@ class Slider (Control):
 		self.length = length
 		self.measure = measure
 		self.bar = go.Rect((0, 0), (length, self.fixed_height))
-		self.slider_border = go.Rect((0, 0), self.slider_size, width=2)
+		self.slider_border = go.Rect((0, 0), tuple(x + 2 for x in self.slider_size), width=1)
 		self.slider = go.Rect((0, 0), self.slider_size)
 		super().__init__(left_top, (length, self.sh))
 

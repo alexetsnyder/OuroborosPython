@@ -16,7 +16,7 @@ class Window (controls.Control):
 		self.window = go.Rect(left_top, size)
 		self.lbl_text = go.RenderText(self.title, go.FontInfo(font_size=10))
 		self.header = go.Rect(left_top, size)
-		self.line = go.Line((0, 0), 0)
+		self.line = go.HorizontalLine((0, 0), 0)
 		self.wire_events()
 		super().__init__(left_top, size, enabled_color=color)
 

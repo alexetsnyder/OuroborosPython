@@ -187,7 +187,7 @@ class Event:
 		event = pygame.event.Event(self.types['type'], **self.without_type(), **kargs)
 		pygame.event.post(event)
 
-	def listen(self, *args, quell=False):
+	def create(self, *args, quell=False):
 		delegate = Delegate(self.name, quell=quell, **self.types)
 		for arg in args:
 			delegate += arg 

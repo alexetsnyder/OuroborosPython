@@ -111,7 +111,7 @@ class IslandMap:
 		self.wire_events()
 
 	def wire_events(self):
-		imp.IMP().add_listener(events.KeyDownEvent(pygame.K_r).listen(self.on_reset))
+		imp.IMP().add_listener(events.KeyDownEvent(pygame.K_r).create(self.on_reset))
 
 	def on_reset(self, event):
 		self.reset()
@@ -216,7 +216,7 @@ class LineMap:
 		self.wire_events()
 
 	def wire_events(self):
-		imp.IMP().add_listener(events.KeyDownEvent(pygame.K_r).listen(self.on_reset))
+		imp.IMP().add_listener(events.KeyDownEvent(pygame.K_r).create(self.on_reset))
 
 	def set_position(self, left_top):
 		self.circle = Circle(self.center, self.radius)

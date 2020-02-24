@@ -103,6 +103,9 @@ class Rect:
 		x, y = pos 
 		self.set_position((x - self.w // 2, y - self.h // 2))
 
+	def move(self, dx, dy):
+		self.set_position((self.left + dx, self.top + dy))
+
 	def get_area(self):
 		return self.w * self.h
 

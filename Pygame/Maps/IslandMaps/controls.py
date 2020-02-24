@@ -47,8 +47,8 @@ class Button (Control):
 		super().__init__(left_top, self.get_size(), is_enabled=is_enabled, is_visible=is_visible)
 
 	def wire_events(self):
-		imp.IMP().add_listener(events.MouseMotionEvent().listen(self.on_mouse_motion, quell=True))
-		imp.IMP().add_listener(events.MouseLeftButtonDownEvent().listen(self.on_mouse_left_button_down))
+		imp.IMP().add_listener(events.MouseMotionEvent().create(self.on_mouse_motion, quell=True))
+		imp.IMP().add_listener(events.MouseLeftButtonDownEvent().create(self.on_mouse_left_button_down))
 
 	def on_mouse_motion(self, event):
 		if self.btn_bck.is_within(event.pos):
@@ -115,7 +115,7 @@ class SideBar (Control):
 		self.wire_events()
 
 	def wire_events(self):
-		imp.IMP().add_listener(events.UserEvent(CustomEvent.REFRESH_SIDEBAR).listen(self.on_refresh_sidebar))
+		imp.IMP().add_listener(events.UserEvent(CustomEvent.REFRESH_SIDEBAR).create(self.on_refresh_sidebar))
 
 	def on_refresh_sidebar(self, event):
 		self.set_size(self.assay_size())
@@ -275,7 +275,7 @@ class CheckBox (Control):
 		self.wire_events()
 
 	def wire_events(self):
-		imp.IMP().add_listener(events.MouseLeftButtonDownEvent().listen(self.on_mouse_left_button_down))
+		imp.IMP().add_listener(events.MouseLeftButtonDownEvent().create(self.on_mouse_left_button_down))
 
 	def set_position(self, left_top):
 		super().set_position(left_top)

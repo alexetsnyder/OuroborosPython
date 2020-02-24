@@ -33,7 +33,7 @@ class IMP:
 
 	def wire_events(self):
 		self.screen.wire_events()
-		self.event_dispatcher += events.QuitEvent().listen(self.on_quit)
+		self.event_dispatcher += events.QuitEvent().create(self.on_quit)
 
 	def on_quit(self, event):
 		self.running = False

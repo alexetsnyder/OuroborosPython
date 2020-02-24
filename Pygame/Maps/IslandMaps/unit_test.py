@@ -3,7 +3,6 @@ import pygame
 import traceback
 import imp, events
 from structs import *
-from pygame import freetype
 
 WINDOW_SIZE = (640, 400)
 

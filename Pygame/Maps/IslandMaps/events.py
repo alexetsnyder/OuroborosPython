@@ -1,7 +1,7 @@
 #events.py
+import imp
 import pygame
 from pygame import freetype
-import imp
 from structs import *
 
 PYGAME_EVENT_TYPE_TO_STRING = {

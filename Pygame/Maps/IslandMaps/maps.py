@@ -1,7 +1,6 @@
 #maps.py
 import time, math, pygame
-import imp, go, events, geo
-from geo import plottable
+import imp, go, events
 from opensimplex import OpenSimplex
 from structs import *
 
@@ -26,7 +25,7 @@ class CirculerMask:
 		self.circle = Circle(center, radius)
 
 	def masked(self, x, y):
-		v = geo.Vector(x, y) - geo.Vector(*self.circle.center)
+		v = go.Vector(x, y) - go.Vector(*self.circle.center)
 		return v.length_sqr() > self.circle.radius ** 2
 
 class Noise:
@@ -91,7 +90,7 @@ class MapFill:
 			else:
 				prv_color = color
 
-@plottable
+@go.plottable
 class Tile:
 	def __init__(self, color):
 		self.color = color 
@@ -99,7 +98,7 @@ class Tile:
 	def draw(self, surface):
 		pygame.draw.rect(surface, self.color, pygame.Rect(self.left_top, self.size))
 
-@plottable
+@go.plottable
 class IslandMap:
 	def __init__(self, radius, tile_size):
 		self.grid = []
@@ -163,7 +162,7 @@ class IslandMap:
 		for tile in self.grid:
 		 	tile.draw(surface)
 
-@plottable
+@go.plottable
 class ColorMap:
 	def __init__(self, radius):
 		self.scale = 0.007
@@ -205,7 +204,7 @@ class ColorMap:
 	def draw(self, surface):
 		surface.blit(self.map_surface, pygame.Rect(self.left_top, self.size))
 
-@plottable
+@go.plottable
 class LineMap:
 	def __init__(self, radius):
 		self.points = []
@@ -237,7 +236,7 @@ class LineMap:
 		cx, cy = self.center  
 		self.set_size((w, h))
 		self.center_on((w // 2, h // 2))
-		vc = geo.Vector(self.x, self.y) - geo.Vector(cx, cy)
+		vc = go.Vector(self.x, self.y) - go.Vector(cx, cy)
 		for i in range(len(self.points)):
 			x, y = self.points[i]
 			self.points[i] = (x + vc.v0, y + vc.v1)

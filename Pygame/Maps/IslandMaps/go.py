@@ -83,6 +83,22 @@ class Vector:
 			new_vector.values[key] = self.values[key] - other.values[key]
 		return new_vector
 
+class Line:
+	def __init__(self, left_top, width, thickness=1):
+		self.set_width(width)
+		self.thickness = thickness
+		self.set_position(left_top)
+		
+	def set_width(self, width):
+		self.width = width 
+
+	def set_position(self, left_top):
+		self.x, self.y = self.start = left_top
+
+	def draw(self, surface, color):
+		end = (self.x + self.width, self.y)
+		pygame.draw.line(surface, color, self.start, end, self.thickness)
+
 class Rect:
 	def __init__(self, left_top, size, width=0):
 		self.width = width 
@@ -134,7 +150,6 @@ class Rect:
 
 	def draw(self, surface, color):
 		pygame.draw.rect(surface, color, pygame.Rect(self.left_top, self.size))
-
 
 class FontInfo:
 	def __init__(self, font_size=20, font_name='lucidaconsole'):

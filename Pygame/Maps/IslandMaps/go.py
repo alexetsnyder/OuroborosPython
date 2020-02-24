@@ -84,9 +84,8 @@ class Vector:
 		return new_vector
 
 class Rect:
-	def __init__(self, left_top, size, color=Color.SILVER, width=0):
+	def __init__(self, left_top, size, width=0):
 		self.width = width 
-		self.color = color 
 		self.set_size(size)
 		self.set_position(left_top)
 
@@ -103,9 +102,6 @@ class Rect:
 	def center_on(self, pos):
 		x, y = pos 
 		self.set_position((x - self.w // 2, y - self.h // 2))
-
-	def set_color(self, color):
-		self.color = color 
 
 	def get_area(self):
 		return self.w * self.h
@@ -129,19 +125,18 @@ class Rect:
 		top = max(self.top, r2.top)
 		return Rect((left, top), (right - left, bottom - top))
 
-	def draw_at(self, surface, pos):
+	def draw_at(self, surface, color, pos):
 		left, top = pos
-		pygame.draw.rect(surface, self.color, pygame.Rect((left - self.w // 2, right - self.h // 2), self.size))
+		pygame.draw.rect(surface, color, pygame.Rect((left - self.w // 2, right - self.h // 2), self.size))
 
-	def draw(self, surface):
-		pygame.draw.rect(surface, self.color, pygame.Rect(self.left_top, self.size))
+	def draw(self, surface, color):
+		pygame.draw.rect(surface, color, pygame.Rect(self.left_top, self.size))
 
 
 class FontInfo:
-	def __init__(self, font_size=20, font_color=Color.SILVER, font_name='lucidaconsole'):
+	def __init__(self, font_size=20, font_name='lucidaconsole'):
 		self.font_name = font_name
 		self.font_size = font_size
-		self.font_color = font_color
 
 class RenderText (Rect):
 	def __init__(self, text_str, font_info=FontInfo()):
@@ -150,7 +145,7 @@ class RenderText (Rect):
 		self.text_str = text_str
 		self.font_info = font_info
 		self.font = self.create_font()
-		super().__init__((0, 0), self.get_size(), color=font_info.font_color)
+		super().__init__((0, 0), self.get_size())
 
 	def create_font(self):
 		return freetype.SysFont(self.font_info.font_name, self.font_info.font_size)
@@ -169,7 +164,6 @@ class RenderText (Rect):
 
 	def set_font_info(self, font_info):
 		self.font_info = font_info
-		self.color = font_info.font_color
 		self.font = self.create_font()
 
 	def get_size(self):
@@ -178,8 +172,8 @@ class RenderText (Rect):
 	def get_font_size(self):
 		return self.font_info.font_size
 
-	def draw_at(self, surface, pos):
-		self.font.render_to(surface, pos, self.text_str, self.color)
+	def draw_at(self, surface, color, pos):
+		self.font.render_to(surface, pos, self.text_str, color)
 
-	def draw(self, surface):
-		self.font.render_to(surface, self.left_top, self.text_str, self.color)
+	def draw(self, surface, color):
+		self.font.render_to(surface, self.left_top, self.text_str, color)

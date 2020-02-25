@@ -287,7 +287,6 @@ class CheckBox (Control):
 		self.check_box = go.Rect(left_top, (10, 10), width=1)
 		self.fill_box = go.Rect(left_top, (10, 10))
 		super().__init__(left_top, tuple(x + 10 for x in self.lbl_text.size))
-		self.apply_styles()
 		self.wire_events()
 
 	def create_styles(self):
@@ -296,9 +295,6 @@ class CheckBox (Control):
 		self.styles['check_box_disabled'] = Style(Color.SLATE_GREY)
 		self.styles['check_mark_enabled'] = Style(Color.BLACK)
 		self.styles['check_mark_disabled'] = Style(Color.DIM_GREY)
-
-	def apply_styles(self):
-		self.lbl_text.set_font_style(self.get_style('default_text'))
 
 	def wire_events(self):
 		imp.IMP().add_listener(events.MouseLeftButtonDownEvent().create(self.on_mouse_left_button_down))
@@ -499,6 +495,7 @@ class CounterBox (Control):
 
 class Slider (Control):
 	def __init__(self, length=80, measure=10, left_top=(0, 0)):
+		self.is_dragging = False
 		self.fixed_height = 5
 		self.sw, self.sh = self.slider_size = (10, 4 * self.fixed_height)
 		self.length = length
@@ -507,13 +504,35 @@ class Slider (Control):
 		self.slider_border = go.Rect((0, 0), tuple(x + 2 for x in self.slider_size), width=1)
 		self.slider = go.Rect((0, 0), self.slider_size)
 		super().__init__(left_top, (length, self.sh))
+		self.wire_events()
+
+	def wire_events(self):
+		imp.IMP().add_listener(events.MouseLeftButtonDownEvent().create(self.on_mouse_left_button_down))
+		imp.IMP().add_listener(events.MouseLeftButtonUpEvent().create(self.on_mouse_left_button_up))
+		imp.IMP().add_listener(events.MouseMotionEvent().create(self.on_mouse_motion, quell=True))
+
+	def on_mouse_left_button_down(self, event):
+		if self.slider.is_within(event.pos):
+			self.is_dragging = True
+
+	def on_mouse_left_button_up(self, event):
+		self.is_dragging = False
+
+	def on_mouse_motion(self, event):
+		if self.is_dragging:
+			x, y = event.pos 
+			if x - self.slider.w // 2 < self.bar.left:
+				x = self.bar.left + self.slider.w // 2
+			if x + self.slider.w // 2 > self.bar.right:
+				x = self.bar.right - self.slider.w // 2
+			self.slider_border.center_on((x, self.slider_border.y))
+			self.slider.center_on((x, self.slider_border.y))
 
 	def set_position(self, left_top):
 		super().set_position(left_top)
 		self.bar.set_position(left_top)
-		slider_center = (self.left, self.bar.y)
-		self.slider_border.center_on(slider_center) 
-		self.slider.center_on(slider_center)
+		self.slider_border.center_on((self.left + self.slider.w // 2, self.bar.y)) 
+		self.slider.center_on((self.left + self.slider.w // 2, self.bar.y))
 
 	def draw(self, surface):
 		color = self.get_style('default').color

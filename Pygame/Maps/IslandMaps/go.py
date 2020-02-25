@@ -3,6 +3,27 @@ import pygame
 from pygame import freetype
 from structs import *
 
+class Style:
+	def __init__(self, color=Color.BLACK, font_size=20, font_name='lucidaconsole'):
+		self.color = color 
+		self.font_size = font_size
+		self.font_name = font_name
+
+class Styles:
+	def __init__(self):
+		self.map = {}
+
+	def __setitem__(self, key, style_info):
+		self.map[key] = style_info
+
+	def __getitem__(self, key):
+		return self.map[key]
+
+	def try_get(self, key, default):
+		if key in self.map:
+			return self.map[key]
+		return default
+
 def plottable(cls):
 	class PlottableClass (cls):
 		def __init__(self, left_top, size, *args, margins=(0, 0), **kargs):
@@ -185,44 +206,45 @@ class Rect:
 	def draw(self, surface, color):
 		pygame.draw.rect(surface, color, pygame.Rect(self.left_top, self.size))
 
-class FontInfo:
-	def __init__(self, font_size=20, font_name='lucidaconsole'):
-		self.font_name = font_name
-		self.font_size = font_size
 
 class RenderText (Rect):
-	def __init__(self, text_str, font_info=FontInfo()):
+	def __init__(self, text_str, font_style=None):
 		if not freetype.get_init():
 			freetype.init()
 		self.text_str = text_str
-		self.font_info = font_info
+		self.font_style = font_style
+		self.create_default_style()
 		self.font = self.create_font()
 		super().__init__((0, 0), self.get_size())
 
+	def create_default_style(self):
+		if self.font_style == None:
+			self.font_style = Style()
+
 	def create_font(self):
-		return freetype.SysFont(self.font_info.font_name, self.font_info.font_size)
+		return freetype.SysFont(self.font_style.font_name, self.font_style.font_size)
 
 	def set_text(self, text_str):
 		self.text_str = text_str
 		super().set_size(self.get_size())
 
 	def set_font_size(self, value):
-		self.font_info.font_size = value 
+		self.font_style.font_size = value 
 		self.font = self.create_font()
 
 	def set_font_name(self, font):
-		self.font_info.font_name = font 
+		self.font_style.font_name = font 
 		self.font = self.create_font()
 
-	def set_font_info(self, font_info):
-		self.font_info = font_info
+	def set_font_style(self, font_style):
+		self.font_style = font_style
 		self.font = self.create_font()
 
 	def get_size(self):
 		return self.font.get_rect(self.text_str).size 
 
 	def get_font_size(self):
-		return self.font_info.font_size
+		return self.font_style.font_size
 
 	def draw_at(self, surface, color, pos):
 		self.font.render_to(surface, pos, self.text_str, color)

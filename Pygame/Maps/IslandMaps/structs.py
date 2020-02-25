@@ -4,6 +4,7 @@ class Color:
 	WHITE  		  = (255, 255, 255, 255)
 	BLACK  		  = (  0,   0,   0, 255)
 	RED           = (255,   0,   0, 255)
+	LIGHT_CORAL   = (240, 128, 128, 255)
 	GREEN  		  = (  0, 255,   0, 255)
 	SEA_GREEN     = ( 46, 139,  87, 255)
 	FOREST_GREEN  = ( 13,  55,  13, 255)

@@ -32,7 +32,8 @@ PYGAME_KEY_TO_STRING = {
 	pygame.K_t      : 't',
 	pygame.K_r      : 'r',
 	pygame.K_e      : 'e',
-	pygame.K_v      : 'v'
+	pygame.K_v      : 'v',
+	pygame.K_s      : 's'
 }
 
 PYGAME_USEREVENT_NAME_TO_STRING = {

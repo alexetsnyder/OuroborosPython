@@ -1,76 +1,7 @@
 #go.py
-import pygame
+import pygame, imp
 from pygame import freetype
 from structs import *
-
-class Style:
-	def __init__(self, color=Color.BLACK, font_size=20, font_name='lucidaconsole'):
-		self.color = color 
-		self.font_size = font_size
-		self.font_name = font_name
-
-class Styles:
-	def __init__(self):
-		self.map = {}
-
-	def __setitem__(self, key, style_info):
-		self.map[key] = style_info
-
-	def __getitem__(self, key):
-		return self.map[key]
-
-	def try_get(self, key, default):
-		if key in self.map:
-			return self.map[key]
-		return default
-
-def plottable(cls):
-	class PlottableClass (cls):
-		def __init__(self, left_top, size, *args, margins=(0, 0), **kargs):
-			self.m_w, self.m_h = self.margins = margins
-			self.loading = True
-			self.set_size(size)
-			self.set_position(left_top)
-			self.loading = False
-			if hasattr(super(), '__init__'):
-				super().__init__(*args, **kargs)
-
-		def set_size(self, size):
-			self.w, self.h = self.size = size
-			self.h_w, self.h_h = self.w // 2, self.h // 2
-			if not self.loading and hasattr(super(), 'set_size'):
-				super().set_size(size)
-
-		def set_position(self, left_top):
-			left, top = self.origin = left_top
-			self.left, self.right = left + self.m_w, left + self.w - self.m_w 
-			self.top, self.bottom = top + self.m_h, top + self.h - self.m_h 
-			self.left_top = (self.left, self.top)
-			self.left_bottom = (self.left, self.bottom)
-			self.right_top = (self.right, self.top)
-			self.right_bottom = (self.right, self.bottom) 
-			self.x, self.y = self.center = self.left + self.h_w, self.top + self.h_h
-			if not self.loading and hasattr(super(), 'set_position'):
-				super().set_position(left_top)
-
-		def get_size(self):
-			if hasattr(super(), 'get_size'):
-				return super().get_size()
-			return self.size 
-
-		def center_on(self, position):
-			x, y = position
-			w, h = self.get_size()
-			self.set_position((x - w // 2, y - h // 2))
-			if hasattr(super(), 'center_on'):
-				return super().center_on(self.left_top)
-			return self
-
-		def move(self, dx, dy):
-			self.set_position((self.left + dx, self.top + dy))
-			if hasattr(super(), 'move'):
-				super().move(dx, dy)
-	return PlottableClass
 
 class Vector:
 	def __init__(self, *args):
@@ -155,10 +86,10 @@ class VerticalLine:
 		self.line.draw(surface, color)
 
 class Rect:
-	def __init__(self, left_top, size, width=0):
+	def __init__(self, left_top, size=(0, 0), width=0):
 		self.width = width 
-		self.set_size(size)
-		self.set_position(left_top)
+		Rect.set_size(self, size)
+		Rect.set_position(self, left_top)
 
 	def set_size(self, size):
 		self.w, self.h = self.size = size 
@@ -201,7 +132,7 @@ class Rect:
 
 	def draw_at(self, surface, color, pos):
 		left, top = pos
-		pygame.draw.rect(surface, color, pygame.Rect((left - self.w // 2, right - self.h // 2), self.size))
+		pygame.draw.rect(surface, color, pygame.Rect((left - self.w // 2, top - self.h // 2), self.size))
 
 	def draw(self, surface, color):
 		pygame.draw.rect(surface, color, pygame.Rect(self.left_top, self.size))
@@ -219,7 +150,7 @@ class RenderText (Rect):
 
 	def create_default_style(self):
 		if self.font_style == None:
-			self.font_style = Style()
+			self.font_style = imp.Style()
 
 	def create_font(self):
 		return freetype.SysFont(self.font_style.font_name, self.font_style.font_size)

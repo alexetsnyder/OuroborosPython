@@ -10,7 +10,7 @@ class Screen:
 		self.surface = pygame.display.set_mode(self.size, pygame.RESIZABLE)
 
 	def wire_events(self):
-		imp.IMP().add_listener(events.WindowResizedEvent().listen(self.on_resize))
+		imp.IMP().add_listener(events.WindowResizedEvent().create(self.on_resize))
 
 	def on_resize(self, event):
 		self.surface = pygame.display.set_mode((event.w, event.h), pygame.RESIZABLE)
@@ -41,7 +41,7 @@ class App:
 			imp.IMP().register(obj)
 
 	def wire_events(self):
-		imp.IMP().add_listener(events.WindowResizedEvent().listen(self.on_resize))
+		imp.IMP().add_listener(events.WindowResizedEvent().create(self.on_resize))
 
 	def on_resize(self, event):
 		size = event.w, event.h

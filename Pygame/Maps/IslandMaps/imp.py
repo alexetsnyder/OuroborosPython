@@ -1,5 +1,5 @@
 #imp.py
-import events
+import style, events
 
 def singleton(cls):	
 	class SingletonWrapper (cls):
@@ -23,6 +23,7 @@ class IMP:
 		self.actions = None
 		self.event_dispatcher = None
 		self.render_objects = []
+		self.styles = style.Styles()
 
 	def init(self, screen, config, event_dispatcher, debug=False):
 		self.debug = debug

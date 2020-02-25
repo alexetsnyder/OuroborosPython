@@ -1,27 +1,14 @@
 #controls.py
 import time, math
-import go, imp, events
-from go import Styles, Style
+import go, imp, style, events
 from structs import *
 
 class Control (go.Rect):
-	def __init__(self, left_top, size, is_visible=True, is_enabled=True):
-		self.mw, self.mh = self.margins = (8, 8)
-		self.set_enabled(is_enabled)
-		self.set_visibility(is_visible)
+	def __init__(self, left_top=(0, 0), size=(0, 0), is_visible=True, is_enabled=True):
 		super().__init__(left_top, size)
-		self.set_size(size)
-		self.set_position(left_top)
-		self.create_styles()
-
-	def create_styles(self):
-		self.styles = Styles()
-		self.styles['default_enabled'] = Style(Color.ALICE_BLUE)
-		self.styles['default_disabled'] = Style(Color.LIGHT_GREY)
-		self.styles['default_text_enabled'] = Style(font_size=10)
-		self.styles['default_text_disabled'] = Style(Color.DIM_GREY, font_size=10)
-		self.styles['default_border_enabled'] = Style(Color.BLACK)
-		self.styles['default_border_disabled'] = Style(Color.DIM_GREY)
+		self.mw, self.mh = self.margins = (8, 8)
+		Control.set_enabled(self, is_enabled)
+		Control.set_visibility(self, is_visible)
 
 	def set_visibility(self, is_visible):
 		self.is_visible = is_visible
@@ -35,7 +22,7 @@ class Control (go.Rect):
 			postfix = 'enabled'
 		else:
 			postfix = 'disabled'
-		return self.styles['{}_{}'.format(key, postfix)]
+		return imp.IMP().styles.try_get('{}_{}'.format(key, postfix), style.Style())
 
 	def update(self):
 		pass
@@ -45,18 +32,16 @@ class Control (go.Rect):
 
 class Button (Control):
 	def __init__(self, text, on_click=None, left_top=(0, 0), min_size=(0, 0), is_visible=True, is_enabled=True):
+		super().__init__(left_top, is_enabled=is_enabled, is_visible=is_visible)
 		self.is_active = False
 		self.on_click = on_click
 		self.min_w, self.min_h = self.min_size = min_size
-		self.font_style = Style(font_size=10)
+		self.font_style = self.get_text_style()
 		self.btn_txt = go.RenderText(text, self.font_style)
 		self.btn_bck = go.Rect((0, 0), (0, 0))
+		self.set_size(self.get_size())
+		self.set_position(self.left_top)
 		self.wire_events()
-		super().__init__(left_top, self.get_size(), is_enabled=is_enabled, is_visible=is_visible)
-
-	def create_styles(self):
-		super().create_styles()
-		self.styles['btn_active'] = Style(Color.RED)
 
 	def wire_events(self):
 		imp.IMP().add_listener(events.MouseMotionEvent().create(self.on_mouse_motion, quell=True))
@@ -75,7 +60,7 @@ class Button (Control):
 
 	def get_style(self):
 		if self.is_enabled and self.is_active:
-			return self.styles['btn_active']
+			return imp.IMP().styles.try_get('btn_active', style.Style())
 		return super().get_style('default')
 
 	def get_text_style(self):
@@ -95,6 +80,7 @@ class Button (Control):
 	def set_text(self, btn_txt):
 		self.btn_txt.set_text(btn_txt)
 		self.set_size(self.get_size())
+		events.UserEvent(CustomEvent.REFRESH_SIDEBAR).post()
 
 	def get_size(self):
 		w, h = self.btn_txt.size 
@@ -111,13 +97,13 @@ class Button (Control):
 
 class SideBar (Control):
 	def __init__(self, controls=[], window_side=WindowSide.LEFT):	
+		super().__init__()
 		self.is_expanded = True
 		self.controls = controls 
 		self.window_side = window_side
 		self.sidebar_bck = go.Rect((0, 0), (0, 0))
 		self.btn_expand = Button(self.get_btn_txt(), on_click=self.toggle_expand)
-		self.min_w, self.min_h = self.min_size = self.btn_expand.size 
-		super().__init__((0, 0), (0, 0))
+		self.min_w, self.min_h = self.min_size = self.btn_expand.size 	
 		self.set_size(self.assay_size())
 		self.set_position(self.assay_position())
 		self.wire_events()
@@ -273,28 +259,23 @@ class SideBar (Control):
 
 	def draw(self, surface):
 		if self.is_visible:
-			self.sidebar_bck.draw(surface, self.get_style('default').color)
+			self.sidebar_bck.draw(surface, self.get_style('sidebar').color)
 			self.btn_expand.draw(surface)
 			for control in self.controls:
 				control.draw(surface)
 
 class CheckBox (Control):
 	def __init__(self, lbl_str, on_checked=None, left_top=(0, 0)):
+		super().__init__()
 		self.is_checked = False
 		self.on_checked = on_checked
-		self.font_style = Style(font_size=10)
+		self.font_style = self.get_style('default_text')
 		self.lbl_text = go.RenderText(lbl_str, self.font_style)
 		self.check_box = go.Rect(left_top, (10, 10), width=1)
 		self.fill_box = go.Rect(left_top, (10, 10))
-		super().__init__(left_top, tuple(x + 10 for x in self.lbl_text.size))
+		self.set_size(tuple(x + 10 for x in self.lbl_text.size))
+		self.set_position(left_top)
 		self.wire_events()
-
-	def create_styles(self):
-		super().create_styles()
-		self.styles['check_box_enabled'] = Style(Color.LIGHT_GREY)
-		self.styles['check_box_disabled'] = Style(Color.SLATE_GREY)
-		self.styles['check_mark_enabled'] = Style(Color.BLACK)
-		self.styles['check_mark_disabled'] = Style(Color.DIM_GREY)
 
 	def wire_events(self):
 		imp.IMP().add_listener(events.MouseLeftButtonDownEvent().create(self.on_mouse_left_button_down))
@@ -309,6 +290,7 @@ class CheckBox (Control):
 	def set_text(self, text):
 		self.lbl_text.set_text(text)
 		self.set_size(tuple(x + 10 for x in self.lbl_text.size))
+		events.UserEvent(CustomEvent.REFRESH_SIDEBAR).post()
 
 	def set_onchecked(self, method):
 		self.on_checked = method 
@@ -325,30 +307,26 @@ class CheckBox (Control):
 
 	def draw(self, surface):
 		if self.is_visible:
-			self.check_box.draw(surface, self.get_style('check_box').color)
+			self.check_box.draw(surface, self.get_style('default').color)
 			if self.is_checked:
-				self.fill_box.draw(surface, self.get_style('check_mark').color)
+				self.fill_box.draw(surface, self.get_style('default').color)
 			self.lbl_text.draw(surface, self.get_style('default_text').color)
 
 class StopWatch (Control):
 	def __init__(self, left_top=(0, 0), digit_color=Color.RED):
+		super().__init__()
 		self.time = 0
 		self.prv_time = 0
 		self.padding = 4
 		self.is_running = False
-		self.font_style = Style(digit_color, font_size=20)
+		self.font_style = self.get_style('digit_text')
 		self.seperator_txt = go.RenderText(':', self.font_style)
 		self.seconds_txt = go.RenderText(self.display_format(0), self.font_style)
 		self.minutes_txt = go.RenderText(self.display_format(0), self.font_style)
 		self.hours_txt = go.RenderText(self.display_format(0), self.font_style)
 		self.box = go.Rect(left_top, (0, 0))
-		super().__init__(left_top, self.get_clock_size())
-
-	def create_styles(self):
-		super().create_styles()
-		self.styles['default_enabled'].color = Color.BLACK
-		self.styles['digit_text_enabled'] = self.font_style
-		self.styles['digit_text_disabled'] = Style(Color.LIGHT_CORAL, font_size=20)
+		self.set_size(self.get_clock_size())
+		self.set_position(left_top)
 
 	def set_display(self):
 		hours, minutes, seconds = self.get_time()
@@ -369,7 +347,7 @@ class StopWatch (Control):
 	def set_position(self, left_top):
 		super().set_position(left_top)
 		self.box.set_position(self.left_top)
-		left = self.left + self.padding * 2
+		left = self.left + self.padding
 		self.hours_txt.set_position((left, self.y - self.hours_txt.h // 2))
 		left += self.hours_txt.w + self.seperator_txt.w + self.padding
 		self.minutes_txt.set_position((left, self.y - self.minutes_txt.h // 2))
@@ -382,7 +360,7 @@ class StopWatch (Control):
 		clock_width += self.minutes_txt.w + self.padding // 2
 		clock_width += self.seperator_txt.w + self.padding // 2
 		clock_width += self.seconds_txt.w + self.padding
-		return (clock_width, self.seconds_txt.h + self.padding)
+		return (clock_width, self.seconds_txt.h + self.padding + 2)
 
 	def get_time(self):
 		r_time = math.ceil(self.time)
@@ -412,40 +390,36 @@ class StopWatch (Control):
 
 	def draw_clock(self, surface):
 		digit_color = self.get_style('digit_text').color
-		left = self.left + self.padding
+		left = self.left
 		self.hours_txt.draw(surface, digit_color)
 		left += self.hours_txt.w + self.padding
-		self.seperator_txt.draw_at(surface, digit_color, (left, self.top + self.h // 4 + 2))
+		self.seperator_txt.draw_at(surface, digit_color, (left + 2, self.top + self.h // 4))
 		left += self.seperator_txt.w + self.padding // 2
 		self.minutes_txt.draw(surface, digit_color)
 		left += self.minutes_txt.w + 2
-		self.seperator_txt.draw_at(surface, digit_color, (left, self.top + self.h // 4 + 2))
+		self.seperator_txt.draw_at(surface, digit_color, (left + 2, self.top + self.h // 4))
 		self.seconds_txt.draw(surface, digit_color)
 
 	def draw(self, surface):
 		if self.is_visible:
-			self.box.draw(surface, self.get_style('default').color)
+			self.box.draw(surface, self.get_style('clockback').color)
 			self.draw_clock(surface)
 
 class CounterBox (Control):
-	def __init__(self, digits, can_grow=False, limit=100, left_top=(0, 0), digit_color=Color.RED):
+	def __init__(self, digits, can_grow=False, limit=100, left_top=(0, 0)):
+		super().__init__()
 		self.limit = limit
 		self.can_grow = can_grow
 		self.digits = digits
 		self.post_update = False
 		self.div = 10 * int('{}{}'.format(1, ''.join(['0' for i in range(self.digits-1)])))
 		self.counter = 0
-		self.padding = 4
+		self.padding = 10
 		self.box = go.Rect(left_top, (0, 0))
-		self.font_style = Style(digit_color, font_size=30)
+		self.font_style = self.get_style('digit_text')
 		self.display_text = go.RenderText(self.get_display_str(), font_style=self.font_style)
-		super().__init__(left_top, tuple(x + self.padding for x in self.display_text.size))
-
-	def create_styles(self):
-		super().create_styles()
-		self.styles['default_enabled'].color = Color.BLACK
-		self.styles['digit_text_enabled'] = self.font_style
-		self.styles['digit_text_disabled'] = Style(Color.LIGHT_CORAL, font_size=30)
+		self.set_size(tuple(x + self.padding for x in self.display_text.size))
+		self.set_position(left_top)
 
 	def set_size(self, size):
 		super().set_size(size)
@@ -490,11 +464,12 @@ class CounterBox (Control):
 
 	def draw(self, surface):
 		if self.is_visible:
-			self.box.draw(surface, self.get_style('default').color)
+			self.box.draw(surface, self.get_style('clockback').color)
 			self.display_text.draw(surface, self.get_style('digit_text').color)
 
 class Slider (Control):
 	def __init__(self, length=80, measure=10, left_top=(0, 0)):
+		super().__init__()
 		self.is_dragging = False
 		self.fixed_height = 5
 		self.sw, self.sh = self.slider_size = (10, 4 * self.fixed_height)
@@ -503,7 +478,8 @@ class Slider (Control):
 		self.bar = go.Rect((0, 0), (length, self.fixed_height))
 		self.slider_border = go.Rect((0, 0), tuple(x + 2 for x in self.slider_size), width=1)
 		self.slider = go.Rect((0, 0), self.slider_size)
-		super().__init__(left_top, (length, self.sh))
+		self.set_size((length, self.sh))
+		self.set_position(left_top)
 		self.wire_events()
 
 	def wire_events(self):
@@ -519,7 +495,7 @@ class Slider (Control):
 		self.is_dragging = False
 
 	def on_mouse_motion(self, event):
-		if self.is_dragging:
+		if self.is_enabled and self.is_dragging:
 			x, y = event.pos 
 			if x - self.slider.w // 2 < self.bar.left:
 				x = self.bar.left + self.slider.w // 2
@@ -553,11 +529,10 @@ if __name__=='__main__':
 	btn_bottom = Button('BOTTOM')
 	btn_enable = Button('DISABLE')
 	chk_box = CheckBox('IS CHECKED', on_checked=lambda event: print('OnChecked'))
-	counter_box = CounterBox(4, can_grow=True)
-	btn_inc = Button('INCREMENT', lambda event : counter_box.increment(1000))
+	counter_box = CounterBox(2, can_grow=True)
+	btn_inc = Button('INCREMENT', lambda event : counter_box.increment(5))
 	stop_watch = StopWatch()
-	btn_start = Button('START', lambda event : stop_watch.start())
-	btn_stop = Button('STOP', lambda event : stop_watch.stop())
+	btn_start = Button('START')
 	btn_reset = Button('RESET', lambda event : stop_watch.reset())
 	slider = Slider()
 
@@ -573,7 +548,6 @@ if __name__=='__main__':
 	controls.append(btn_inc)
 	controls.append(stop_watch)
 	controls.append(btn_start)
-	controls.append(btn_stop)
 	controls.append(btn_reset)
 	sidebar = SideBar(controls, WindowSide.LEFT)
 
@@ -605,9 +579,19 @@ if __name__=='__main__':
 		btn_inc.set_enabled(not btn_inc.is_enabled)
 		stop_watch.set_enabled(not stop_watch.is_enabled)
 		btn_start.set_enabled(not btn_start.is_enabled)
-		btn_stop.set_enabled(not btn_stop.is_enabled)
 		btn_reset.set_enabled(not btn_reset.is_enabled)
 	btn_enable.on_click = toggle_enable
+
+	def start_stop(event):
+		if stop_watch.is_running:
+			btn_start.set_text('START')
+			stop_watch.stop()
+		else:
+			btn_start.set_text('STOP')
+			stop_watch.start()
+	btn_start.on_click = start_stop
+
+	imp.IMP().add_listener(events.KeyDownEvent(pygame.K_s).create(lambda event : sidebar.set_enabled(not sidebar.is_enabled)))
 
 	unit_test.register([sidebar])
 	unit_test.run()

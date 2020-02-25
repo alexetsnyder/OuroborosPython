@@ -4,14 +4,6 @@ import imp, go, events
 from opensimplex import OpenSimplex
 from structs import *
 
-class Point:
-	def __init__(self, x, y):
-		self.x = x
-		self.y = y 
-		
-	def get(self):
-		return (self.x, self.y)
-
 class Circle:
 	def __init__(self, center, radius):
 		self.r = self.radius = radius
@@ -90,18 +82,19 @@ class MapFill:
 			else:
 				prv_color = color
 
-@go.plottable
-class Tile:
-	def __init__(self, color):
+class Tile (go.Rect):
+	def __init__(self, left_top, size, color):
+		super().__init__(left_top, size)
 		self.color = color 
 
 	def draw(self, surface):
-		pygame.draw.rect(surface, self.color, pygame.Rect(self.left_top, self.size))
+		super().draw(surface, self.color)
 
-@go.plottable
-class IslandMap:
-	def __init__(self, radius, tile_size):
+class IslandMap (go.Rect):
+	def __init__(self, left_top, size, radius, tile_size):
+		super().__init__(left_top, size)
 		self.grid = []
+		self.draw_image = False 
 		self.rows, self.cols = 0, 0
 		self.tw, self.th = self.tile_size = tile_size
 		self.color_map = ColorMap(self.left_top, self.size, radius)
@@ -112,11 +105,16 @@ class IslandMap:
 
 	def wire_events(self):
 		imp.IMP().add_listener(events.KeyDownEvent(pygame.K_r).create(self.on_reset))
+		imp.IMP().add_listener(events.KeyDownEvent(pygame.K_s).create(self.on_key_down))
 
 	def on_reset(self, event):
 		self.reset()
 
+	def on_key_down(self, event):
+		self.draw_image = not self.draw_image
+
 	def set_position(self, left_top):
+		super().set_position(left_top)
 		index = 0
 		for i in range(self.left, self.right, self.tw):
 			for j in range(self.top, self.bottom, self.th):
@@ -158,13 +156,15 @@ class IslandMap:
 		self.map_fill.survey()
 
 	def draw(self, surface):
-		#self.color_map.draw(surface)
-		for tile in self.grid:
-		 	tile.draw(surface)
+		if self.draw_image:
+			self.color_map.draw(surface)
+		else:
+			for tile in self.grid:
+			 	tile.draw(surface)
 
-@go.plottable
-class ColorMap:
-	def __init__(self, radius):
+class ColorMap (go.Rect):
+	def __init__(self, left_top, size, radius):
+		super().__init__(left_top, size)
 		self.scale = 0.007
 		self.land = Land()
 		self.island_radius = radius
@@ -204,9 +204,17 @@ class ColorMap:
 	def draw(self, surface):
 		surface.blit(self.map_surface, pygame.Rect(self.left_top, self.size))
 
-@go.plottable
-class LineMap:
-	def __init__(self, radius):
+class Point:
+	def __init__(self, x, y):
+		self.x = x
+		self.y = y 
+		
+	def get(self):
+		return (self.x, self.y)
+
+class LineMap (go.Rect):
+	def __init__(self, left_top, size, radius):
+		super().__init__(left_top, size)
 		self.points = []
 		self.radius = radius
 		self.sum_x, self.sum_y = 0, 0
@@ -219,6 +227,7 @@ class LineMap:
 		imp.IMP().add_listener(events.KeyDownEvent(pygame.K_r).create(self.on_reset))
 
 	def set_position(self, left_top):
+		super().set_position(left_top)
 		self.circle = Circle(self.center, self.radius)
 
 	def on_reset(self, event):

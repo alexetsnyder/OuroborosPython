@@ -18,7 +18,7 @@ class Control (go.Rect):
 		self.styles = Styles()
 		self.styles['default_enabled'] = Style(Color.ALICE_BLUE)
 		self.styles['default_disabled'] = Style(Color.LIGHT_GREY)
-		self.styles['default_text_enabled'] = Style(Color.BLACK, font_size=10)
+		self.styles['default_text_enabled'] = Style(font_size=10)
 		self.styles['default_text_disabled'] = Style(Color.DIM_GREY, font_size=10)
 		self.styles['default_border_enabled'] = Style(Color.BLACK)
 		self.styles['default_border_disabled'] = Style(Color.DIM_GREY)
@@ -48,18 +48,15 @@ class Button (Control):
 		self.is_active = False
 		self.on_click = on_click
 		self.min_w, self.min_h = self.min_size = min_size
-		self.btn_txt = go.RenderText(text)
+		self.font_style = Style(font_size=10)
+		self.btn_txt = go.RenderText(text, self.font_style)
 		self.btn_bck = go.Rect((0, 0), (0, 0))
 		self.wire_events()
 		super().__init__(left_top, self.get_size(), is_enabled=is_enabled, is_visible=is_visible)
-		self.apply_styles()
 
 	def create_styles(self):
 		super().create_styles()
 		self.styles['btn_active'] = Style(Color.RED)
-
-	def apply_styles(self):
-		self.btn_txt.set_font_style(self.get_text_style())
 
 	def wire_events(self):
 		imp.IMP().add_listener(events.MouseMotionEvent().create(self.on_mouse_motion, quell=True))
@@ -285,7 +282,8 @@ class CheckBox (Control):
 	def __init__(self, lbl_str, on_checked=None, left_top=(0, 0)):
 		self.is_checked = False
 		self.on_checked = on_checked
-		self.lbl_text = go.RenderText(lbl_str)
+		self.font_style = Style(font_size=10)
+		self.lbl_text = go.RenderText(lbl_str, self.font_style)
 		self.check_box = go.Rect(left_top, (10, 10), width=1)
 		self.fill_box = go.Rect(left_top, (10, 10))
 		super().__init__(left_top, tuple(x + 10 for x in self.lbl_text.size))
@@ -294,8 +292,9 @@ class CheckBox (Control):
 
 	def create_styles(self):
 		super().create_styles()
-		self.styles['default_enabled'].color = Color.TEAL_FELT
-		self.styles['check_mark_enabled'] = Style()
+		self.styles['check_box_enabled'] = Style(Color.LIGHT_GREY)
+		self.styles['check_box_disabled'] = Style(Color.SLATE_GREY)
+		self.styles['check_mark_enabled'] = Style(Color.BLACK)
 		self.styles['check_mark_disabled'] = Style(Color.DIM_GREY)
 
 	def apply_styles(self):
@@ -330,7 +329,7 @@ class CheckBox (Control):
 
 	def draw(self, surface):
 		if self.is_visible:
-			self.check_box.draw(surface, self.get_style('default').color)
+			self.check_box.draw(surface, self.get_style('check_box').color)
 			if self.is_checked:
 				self.fill_box.draw(surface, self.get_style('check_mark').color)
 			self.lbl_text.draw(surface, self.get_style('default_text').color)

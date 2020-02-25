@@ -14,10 +14,11 @@ class Color:
 	DEEP_SKY_BLUE = (  0, 191, 255, 255)
 	YELLOW 		  = (255, 255,   0, 255)
 	SAND          = ( 76,  70,  50, 255)
-	SILVER 		  = (192, 192, 192, 255)
 	LIGHT_GREY    = (211, 211, 211, 255)
+	SILVER 		  = (192, 192, 192, 255)
 	GREY          = (128, 128, 128, 255)
 	DIM_GREY      = (105, 105, 105, 255)
+	SLATE_GREY    = (112, 128, 144, 255)
 	TRANSPARENT   = (  0,   0,   0,   0)
 
 class MouseButton:

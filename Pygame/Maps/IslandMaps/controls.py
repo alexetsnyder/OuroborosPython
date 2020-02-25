@@ -309,7 +309,7 @@ class CheckBox (Control):
 		if self.is_visible:
 			self.check_box.draw(surface, self.get_style('default').color)
 			if self.is_checked:
-				self.fill_box.draw(surface, self.get_style('default').color)
+				self.fill_box.draw(surface, self.get_style('check_mark').color)
 			self.lbl_text.draw(surface, self.get_style('default_text').color)
 
 class StopWatch (Control):

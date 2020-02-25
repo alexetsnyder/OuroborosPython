@@ -22,7 +22,11 @@ styles = {
 	'digit_text_enabled'      : Style(Color.RED, font_size=20),
 	'digit_text_disabled'     : Style(Color.LIGHT_CORAL, font_size=30),
 	'clockback_enabled'       : Style(Color.BLACK),
-	'clockback_disabled'      : Style(Color.LIGHT_GREY)
+	'clockback_disabled'      : Style(Color.LIGHT_GREY),
+	'header_enabled'          : Style(Color.DEEP_SKY_BLUE),
+	'header_disabled'         : Style(Color.LIGHT_SKY_BLUE),
+	'window_back_enabled'     : Style(Color.LIGHT_GREY),
+	'window_back_disabled'    : Style(Color.GREY)
 }
 
 class Styles:

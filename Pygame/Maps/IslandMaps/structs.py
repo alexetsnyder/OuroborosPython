@@ -14,6 +14,8 @@ class Color:
 	TEAL_FELT        = ( 20, 118,  98, 255)
 	BLUE   		     = (  0,   0, 255, 255)
 	ALICE_BLUE       = (240, 248, 255, 255)
+	LIGHT_SKY_BLUE  = (135, 206, 250, 255)
+	SKY_BLUE         = (135, 206, 235, 255)
 	DEEP_SKY_BLUE    = (  0, 191, 255, 255)
 	YELLOW 		     = (255, 255,   0, 255)
 	SAND             = ( 76,  70,  50, 255)

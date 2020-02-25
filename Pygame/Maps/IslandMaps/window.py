@@ -5,20 +5,21 @@ from structs import *
 
 class Window (controls.Control):
 	def __init__(self, title, left_top, size, color=Color.LIGHT_GREY, header_color=Color.DEEP_SKY_BLUE):
-		self.prv_pos = (0, 0)
-		self.dragging = False
+		super().__init__()
 		self.title = title 
-		self.fixed_positions = []
+		self.dragging = False	
+		self.mouse_pos = (0, 0)
 		self.controls = []
+		self.fixed_positions = []
 		self.title_height = 20
-		self.header_color = header_color
 		self.window_border = go.Rect(left_top, tuple(x + 2 for x in size), width=1)
 		self.window = go.Rect(left_top, size)
-		self.lbl_text = go.RenderText(self.title, go.FontInfo(font_size=10))
+		self.lbl_text = go.RenderText(self.title, self.get_style('default_text'))
 		self.header = go.Rect(left_top, size)
 		self.line = go.HorizontalLine((0, 0), 0)
+		self.set_size(size)
+		self.set_position(left_top)
 		self.wire_events()
-		super().__init__(left_top, size, enabled_color=color)
 
 	def wire_events(self):
 		imp.IMP().add_listener(events.MouseLeftButtonDownEvent().create(self.on_mouse_left_button_down))
@@ -27,7 +28,7 @@ class Window (controls.Control):
 
 	def on_mouse_left_button_down(self, event):
 		if self.is_within(event.pos):
-			self.prv_pos = event.pos
+			self.mouse_pos = event.pos
 			self.dragging = True
 
 	def on_mouse_left_button_up(self, event):
@@ -35,9 +36,9 @@ class Window (controls.Control):
 
 	def on_mouse_motion(self, event):
 		if self.dragging:
-			v = go.Vector(*event.pos) - go.Vector(*self.prv_pos)
+			v = go.Vector(*event.pos) - go.Vector(*self.mouse_pos)
 			self.move(v.v0, v.v1)
-			self.prv_pos = event.pos
+			self.mouse_pos = event.pos
 
 	def set_size(self, size):
 		super().set_size(size)
@@ -54,6 +55,11 @@ class Window (controls.Control):
 		self.line.set_position(self.header.left_bottom)
 		self.lbl_text.center_on(self.header.center)
 		self.position_controls()
+
+	def set_enabled(self, is_enabled):
+		super().set_enabled(is_enabled)
+		for control in self.controls:
+			control.set_enabled(is_enabled)
 
 	def set_controls(self, controls):
 		self.fixed_positions.clear()
@@ -73,16 +79,17 @@ class Window (controls.Control):
 			control.update()
 
 	def draw(self, surface):
-		self.window_border.draw(surface, Color.BLACK)
-		self.window.draw(surface, self.get_color())
-		self.header.draw(surface, self.header_color)
-		self.lbl_text.draw(surface, Color.BLACK)
-		self.line.draw(surface, Color.BLACK)
+		border_color = self.get_style('default_border').color
+		self.window_border.draw(surface, border_color)
+		self.window.draw(surface, self.get_style('window_back').color)
+		self.header.draw(surface, self.get_style('header').color)
+		self.lbl_text.draw(surface, self.get_style('default_text').color)
+		self.line.draw(surface, border_color)
 		for control in self.controls:
 			control.draw(surface)
 
 if __name__=='__main__':
-	import unit_test
+	import unit_test, pygame
 	test = unit_test.UnitTest()
 	width, height = unit_test.WINDOW_SIZE
 	slider = controls.Slider()
@@ -91,5 +98,6 @@ if __name__=='__main__':
 	slider.set_position((10, 15))
 	btn_ok.set_position((200 - btn_ok.w - 5, 80 - btn_ok.h - 5)) 
 	window.set_controls([slider, btn_ok])
+	imp.IMP().add_listener(events.KeyDownEvent(pygame.K_s).create(lambda event : window.set_enabled(not window.is_enabled)))
 	test.register([window])
 	test.run()

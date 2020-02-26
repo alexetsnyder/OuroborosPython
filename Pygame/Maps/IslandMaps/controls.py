@@ -458,6 +458,10 @@ class CounterBox (Control):
 			self.div *= 10
 			self.post_update = True
 			self.post_sidebar_refresh()
+		elif self.counter > 0 and self.counter < self.div // 10:
+			self.post_update = True
+			self.post_sidebar_refresh()
+			self.div //= 10
 		elif not self.can_grow and self.counter >= self.limit:
 			self.counter = 0
 

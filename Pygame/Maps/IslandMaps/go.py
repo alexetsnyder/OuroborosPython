@@ -131,12 +131,10 @@ class Rect:
 		return Rect((left, top), (right - left, bottom - top))
 
 	def draw_at(self, surface, color, pos):
-		left, top = pos
-		pygame.draw.rect(surface, color, pygame.Rect((left - self.w // 2, top - self.h // 2), self.size))
+		pygame.draw.rect(surface, color, pygame.Rect(pos), self.size)
 
 	def draw(self, surface, color):
 		pygame.draw.rect(surface, color, pygame.Rect(self.left_top, self.size))
-
 
 class RenderText (Rect):
 	def __init__(self, text_str, font_style=None):
@@ -182,3 +180,6 @@ class RenderText (Rect):
 
 	def draw(self, surface, color):
 		self.font.render_to(surface, self.left_top, self.text_str, color)
+
+if __name__=='__main__':
+	pass

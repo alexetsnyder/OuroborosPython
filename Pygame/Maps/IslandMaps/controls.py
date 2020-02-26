@@ -475,18 +475,23 @@ class CounterBox (Control):
 			self.display_text.draw(surface, self.get_style('digit_text').color)
 
 class Slider (Control):
-	def __init__(self, length=108, left_top=(0, 0)):
+	def __init__(self, slider_width=8, length=100, left_top=(0, 0)):
 		super().__init__()
-		self.is_dragging = False
-		self.fixed_height = 5
-		self.sw, self.sh = self.slider_size = (8, 4 * self.fixed_height)
-		self.length = length
 		self.value = 0
+		self.tick_value = 0
+		self.length = length
+		self.fixed_height = 5
+		self.is_dragging = False	
+		self.slider_width = slider_width
+		self.sw, self.sh = self.slider_size = (slider_width, 4 * self.fixed_height)	
 		self.bar = go.Rect((0, 0), (length, self.fixed_height))
 		self.slider_border = go.Rect((0, 0), tuple(x + 2 for x in self.slider_size), width=1)
 		self.slider = go.Rect((0, 0), self.slider_size)
 		self.set_size((length, self.sh))
 		self.set_position(left_top)
+		print(self.bar.right - self.bar.left - slider_width)
+		self.tick_length = (self.bar.right - self.bar.left - slider_width) / 100
+		print(self.tick_length)
 		self.wire_events()
 
 	def wire_events(self):
@@ -508,10 +513,13 @@ class Slider (Control):
 				x = self.bar.left + self.slider.w // 2
 			if x + self.slider.w // 2 > self.bar.right:
 				x = self.bar.right - self.slider.w // 2
-			self.value = x - self.bar.left - 4
-			events.UserEvent(CustomEvent.SLIDER_TICK).post(value=self.value)
+			self.tick_value = x - self.bar.left
+			self.post_tick_event()
 			self.slider_border.center_on((x, self.slider_border.y))
 			self.slider.center_on((x, self.slider_border.y))
+
+	def post_tick_event(self):
+		events.UserEvent(CustomEvent.SLIDER_TICK).post(value=round(self.tick_value / self.tick_length - self.slider_width / 2.0))
 
 	def set_position(self, left_top):
 		super().set_position(left_top)

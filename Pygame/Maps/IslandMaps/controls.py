@@ -3,6 +3,10 @@ import time, math
 import go, imp, style, events
 from structs import *
 
+#To Do:
+#1) Control borders
+#2) slider
+
 class Control (go.Rect):
 	def __init__(self, left_top=(0, 0), size=(0, 0), is_visible=True, is_enabled=True):
 		super().__init__(left_top, size)
@@ -430,6 +434,9 @@ class CounterBox (Control):
 		self.box.set_position(self.left_top)
 		self.display_text.center_on(self.center)
 
+	def set_counter(self, n):
+		self.counter = n
+
 	def get_display_str(self):
 		format_str = '{:0' + str(self.digits) + '}'
 		return format_str.format(self.counter)
@@ -468,13 +475,13 @@ class CounterBox (Control):
 			self.display_text.draw(surface, self.get_style('digit_text').color)
 
 class Slider (Control):
-	def __init__(self, length=80, measure=10, left_top=(0, 0)):
+	def __init__(self, length=108, left_top=(0, 0)):
 		super().__init__()
 		self.is_dragging = False
 		self.fixed_height = 5
-		self.sw, self.sh = self.slider_size = (10, 4 * self.fixed_height)
+		self.sw, self.sh = self.slider_size = (8, 4 * self.fixed_height)
 		self.length = length
-		self.measure = measure
+		self.value = 0
 		self.bar = go.Rect((0, 0), (length, self.fixed_height))
 		self.slider_border = go.Rect((0, 0), tuple(x + 2 for x in self.slider_size), width=1)
 		self.slider = go.Rect((0, 0), self.slider_size)
@@ -501,6 +508,8 @@ class Slider (Control):
 				x = self.bar.left + self.slider.w // 2
 			if x + self.slider.w // 2 > self.bar.right:
 				x = self.bar.right - self.slider.w // 2
+			self.value = x - self.bar.left - 4
+			events.UserEvent(CustomEvent.SLIDER_TICK).post(value=self.value)
 			self.slider_border.center_on((x, self.slider_border.y))
 			self.slider.center_on((x, self.slider_border.y))
 
@@ -534,6 +543,7 @@ if __name__=='__main__':
 	stop_watch = StopWatch()
 	btn_start = Button('START')
 	btn_reset = Button('RESET', lambda event : stop_watch.reset())
+	slider_value = CounterBox(2, can_grow=True)
 	slider = Slider()
 
 	controls = []
@@ -543,6 +553,7 @@ if __name__=='__main__':
 	controls.append(btn_bottom)
 	controls.append(btn_enable)
 	controls.append(chk_box)
+	controls.append(slider_value)
 	controls.append(slider)
 	controls.append(counter_box)
 	controls.append(btn_inc)
@@ -591,6 +602,7 @@ if __name__=='__main__':
 			stop_watch.start()
 	btn_start.on_click = start_stop
 
+	imp.IMP().add_listener(events.UserEvent(CustomEvent.SLIDER_TICK).create(lambda event : slider_value.set_counter(event.value)))
 	imp.IMP().add_listener(events.KeyDownEvent(pygame.K_s).create(lambda event : sidebar.set_enabled(not sidebar.is_enabled)))
 
 	unit_test.register([sidebar])

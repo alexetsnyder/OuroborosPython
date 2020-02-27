@@ -484,18 +484,15 @@ class Slider (Control):
 		self.value = 0
 		self.tick_value = 0
 		self.length = length
-		self.fixed_height = 5
+		self.fixed_height = 8
 		self.is_dragging = False	
 		self.slider_width = slider_width
-		self.sw, self.sh = self.slider_size = (slider_width, 4 * self.fixed_height)	
-		self.bar = go.Rect((0, 0), (length, self.fixed_height))
-		self.slider_border = go.Rect((0, 0), tuple(x + 2 for x in self.slider_size), width=1)
-		self.slider = go.Rect((0, 0), self.slider_size)
+		self.sw, self.sh = self.slider_size = (slider_width, 2 * self.fixed_height + 10)	
+		self.bar = go.BorderedRect((0, 0), (length, self.fixed_height))
+		self.slider = go.BorderedRect((0, 0), self.slider_size)
 		self.set_size((length, self.sh))
 		self.set_position(left_top)
-		print(self.bar.right - self.bar.left - slider_width)
 		self.tick_length = (self.bar.right - self.bar.left - slider_width) / 100
-		print(self.tick_length)
 		self.wire_events()
 
 	def wire_events(self):
@@ -519,23 +516,20 @@ class Slider (Control):
 				x = self.bar.right - self.slider.w // 2
 			self.tick_value = x - self.bar.left
 			self.post_tick_event()
-			self.slider_border.center_on((x, self.slider_border.y))
-			self.slider.center_on((x, self.slider_border.y))
+			self.slider.center_on((x, self.y))
 
 	def post_tick_event(self):
 		events.UserEvent(CustomEvent.SLIDER_TICK).post(value=round(self.tick_value / self.tick_length - self.slider_width / 2.0))
 
 	def set_position(self, left_top):
 		super().set_position(left_top)
-		self.bar.set_position(left_top)
-		self.slider_border.center_on((self.left + self.slider.w // 2, self.bar.y)) 
-		self.slider.center_on((self.left + self.slider.w // 2, self.bar.y))
+		self.slider.set_position(self.left_top)
+		self.bar.set_position((self.left, self.slider.y - self.bar.h // 2))
 
 	def draw(self, surface):
 		color = self.get_style('default').color
 		if self.is_visible:
 			self.bar.draw(surface, color)
-			self.slider_border.draw(surface, self.get_style('default_border').color)
 			self.slider.draw(surface, color)
 			
 if __name__=='__main__':

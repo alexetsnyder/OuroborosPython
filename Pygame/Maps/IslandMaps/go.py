@@ -1,5 +1,5 @@
 #go.py
-import pygame, imp
+import pygame, imp, style
 from pygame import freetype
 from structs import *
 
@@ -86,7 +86,7 @@ class VerticalLine:
 		self.line.draw(surface, color)
 
 class Rect:
-	def __init__(self, left_top, size=(0, 0), width=0):
+	def __init__(self, left_top = (0, 0), size = (0, 0), width = 0):
 		self.width = width 
 		Rect.set_size(self, size)
 		Rect.set_position(self, left_top)
@@ -130,11 +130,34 @@ class Rect:
 		top = max(self.top, r2.top)
 		return Rect((left, top), (right - left, bottom - top))
 
-	def draw_at(self, surface, color, pos):
-		pygame.draw.rect(surface, color, pygame.Rect(pos), self.size)
+	def draw_at(self, surface, color, left_top):
+		pygame.draw.rect(surface, color, pygame.Rect(left_top, self.size), self.width)
 
 	def draw(self, surface, color):
-		pygame.draw.rect(surface, color, pygame.Rect(self.left_top, self.size))
+		pygame.draw.rect(surface, color, pygame.Rect(self.left_top, self.size), self.width)
+
+class BorderedRect (Rect):
+	def __init__(self, left_top, size, width=0):
+		super().__init__(width=width)
+		self.border_color = imp.IMP().styles.try_get('default_border_enabled', style.Style()).color
+		self.set_size(size)
+		self.set_position(left_top)
+
+	def set_size(self, size):
+		self.bw, self.bh = self.border_size = size
+		super().set_size((self.bw - 2, self.bh - 2))
+
+	def set_position(self, left_top):
+		self.border_left, self.border_top = left_top
+		super().set_position((self.border_left + 1, self.border_top + 1))
+
+	def draw_at(self, surface, color, left_top):
+		pygame.draw.rect(surface, self.border_color, pygame.Rect(left_top, self.border_size), 1)
+		super().draw(surface, color, left_top)
+
+	def draw(self, surface, color):
+		pygame.draw.rect(surface, self.border_color, pygame.Rect((self.border_left, self.border_top), self.border_size), 1)
+		super().draw(surface, color)
 
 class RenderText (Rect):
 	def __init__(self, text_str, font_style=None):

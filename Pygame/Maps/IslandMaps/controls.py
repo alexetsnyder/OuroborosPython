@@ -42,7 +42,7 @@ class Button (Control):
 		self.min_w, self.min_h = self.min_size = min_size
 		self.font_style = self.get_text_style()
 		self.btn_txt = go.RenderText(text, self.font_style)
-		self.btn_bck = go.Rect((0, 0), (0, 0))
+		self.btn_bck = go.BorderedRect((0, 0), (0, 0))
 		self.set_size(self.get_size())
 		self.set_position(self.left_top)
 		self.wire_events()

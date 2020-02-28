@@ -12,7 +12,12 @@ class Color:
 	DARK_SEA_GREEN   = (143, 188, 143, 255)
 	FOREST_GREEN     = ( 13,  55,  13, 255)
 	TEAL_FELT        = ( 20, 118,  98, 255)
+	SLATE_BLUE       = (106,  90, 205, 255)
+	DARK_SLATE_BLUE  = ( 72,  61, 139, 255)
 	BLUE   		     = (  0,   0, 255, 255)
+	MEDIUM_BLUE      = (  0,   0, 205, 255)
+	ROYAL_BLUE   	 = ( 65, 105, 225, 255)
+	MIDNIGHT_BLUE    = ( 25,  25, 112, 255)
 	ALICE_BLUE       = (240, 248, 255, 255)
 	LIGHT_SKY_BLUE   = (135, 206, 250, 255)
 	SKY_BLUE         = (135, 206, 235, 255)
@@ -34,8 +39,8 @@ class MouseButton:
 	BACKWARD_WHEEL = 5
 
 class CustomEvent:
-	REFRESH_SIDEBAR = 1
-	SLIDER_TICK     = 2
+	REFRESH_UI  = 1
+	SLIDER_TICK = 2
 
 class WindowSide:
 	LEFT   = 0

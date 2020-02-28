@@ -481,6 +481,7 @@ class CounterBox (Control):
 class Slider (Control):
 	def __init__(self, slider_width=10, length=100, left_top=(0, 0)):
 		super().__init__()
+		self.lines = []
 		self.tick_value = 0
 		self.length = length
 		self.fixed_height = 8
@@ -492,6 +493,7 @@ class Slider (Control):
 		self.set_size((length, self.sh))
 		self.set_position(left_top)
 		self.tick_length = (self.bar.right - self.bar.left) / 100
+		self.generate()
 		self.wire_events()
 
 	def wire_events(self):
@@ -524,11 +526,35 @@ class Slider (Control):
 		super().set_position(left_top)
 		self.slider.set_position(self.left_top)
 		self.bar.set_position((self.left, self.slider.y - self.bar.h // 2))
+		self.refresh()
+
+	def refresh(self):
+		is_first = True
+		dx, dy = 0, 0
+		for line in self.lines:
+			if is_first:
+				dx, dy = self.bar.left - line.left, self.bar.top - line.top
+			line.set_position((line.left + dx, line.top + dy))
+
+	def generate(self):
+		count = 0
+		x, y = self.bar.left, self.bar.top
+		while x < self.bar.right:
+			if count % 5 == 0:
+				print((x, y))
+				self.lines.append(go.VerticalLine((x, y), 4))
+			count += 1
+			x += self.tick_length
+
+	def draw_lines(self, surface, color):
+		for line in self.lines:
+			line.draw(surface, color)
 
 	def draw(self, surface):
 		color = self.get_style('default').color
 		if self.is_visible:
 			self.bar.draw(surface, color)
+			self.draw_lines(surface, self.get_style('default_border').color)
 			self.slider.draw(surface, color)
 			
 if __name__=='__main__':

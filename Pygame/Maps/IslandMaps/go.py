@@ -80,7 +80,7 @@ class VerticalLine:
 
 	def set_line(self):
 		self.line.point1 = self.left_top
-		self.line.point2 = (self.left + self.height, self.top)
+		self.line.point2 = (self.left, self.top + self.height)
 
 	def draw(self, surface, color):
 		self.line.draw(surface, color)

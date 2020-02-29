@@ -18,6 +18,10 @@ class SideBar (Control):
 
 	def wire_events(self):
 		imp.IMP().add_listener(events.UserEvent(CustomEvent.REFRESH_UI).create(self.on_refresh_sidebar))
+		imp.IMP().add_listener(events.WindowResizedEvent().create(self.on_resize))
+
+	def on_resize(self, event):
+		self.on_refresh_sidebar(event)
 
 	def on_refresh_sidebar(self, event):
 		self.set_size(self.assay_size())
@@ -174,7 +178,7 @@ if __name__=='__main__':
 	import controls as c
 	import unit_test as ut
 
-	unit_test = ut.UnitTest()
+	unit_test = ut.UnitTest(debug=False)
 
 	btn_left = c.Button('LEFT')
 	btn_right = c.Button('RIGHT')

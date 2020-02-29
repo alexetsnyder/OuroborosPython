@@ -408,7 +408,7 @@ if __name__=='__main__':
 	import pygame
 	import unit_test as ut
 
-	unit_test = ut.UnitTest()
+	unit_test = ut.UnitTest(debug=False)
 	w, h = ut.WINDOW_SIZE
 
 	btn_enable = Button('DISABLE')
@@ -470,8 +470,21 @@ if __name__=='__main__':
 			stop_watch.start()
 	btn_start.on_click = start_stop
 
+	def on_resize(event):
+		global w, h 
+		w, h = event.w, event.h
+		total_height = -10
+		for control in controls:
+			total_height += control.h + 10
+
+		left, top = (event.w // 2, event.h // 2 - total_height // 2)
+		for control in controls:
+			control.center_on((left, top))
+			top += control.h + 10
+
 	imp.IMP().add_listener(events.UserEvent(CustomEvent.SLIDER_TICK).create(lambda event : slider_value.set_counter(event.value)))
 	imp.IMP().add_listener(events.UserEvent(CustomEvent.REFRESH_UI).create(position_controls))
+	imp.IMP().add_listener(events.WindowResizedEvent().create(on_resize))
 
 	unit_test.register(controls)
 	unit_test.run()

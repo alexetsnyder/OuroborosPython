@@ -13,7 +13,8 @@ class Screen:
 		imp.IMP().add_listener(events.WindowResizedEvent().create(self.on_resize))
 
 	def on_resize(self, event):
-		self.surface = pygame.display.set_mode((event.w, event.h), pygame.RESIZABLE)
+		self.set_size((event.w, event.h))
+		self.surface = pygame.display.set_mode(self.size, pygame.RESIZABLE)
 
 	def set_size(self, size):
 		self.w, self.h = self.size = size 

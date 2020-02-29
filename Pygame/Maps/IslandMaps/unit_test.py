@@ -8,15 +8,19 @@ WINDOW_SIZE = (640, 400)
 
 class Screen:
 	def __init__(self, size):
-		self.w, self.h = self.size = size
-		self.surface = pygame.display.set_mode(size, pygame.RESIZABLE)
+		self.set_size(size)
+		self.surface = pygame.display.set_mode(self.size, pygame.RESIZABLE)
 		pygame.display.set_caption('Unit Test')
 
 	def wire_events(self):
 		imp.IMP().add_listener(events.WindowResizedEvent().create(self.on_resize))
 
 	def on_resize(self, event):
-		self.surface = pygame.display.set_mode((event.w, event.h), pygame.RESIZABLE)
+		self.set_size((event.w, event.h))
+		self.surface = pygame.display.set_mode(self.size, pygame.RESIZABLE)
+
+	def set_size(self, size):
+		self.w, self.h = self.size = size
 
 	def fill(self, color=Color.BLACK):
 		self.surface.fill(color)
@@ -25,10 +29,10 @@ class Screen:
 		pygame.display.flip()
 
 class UnitTest:
-	def __init__(self, window_size=WINDOW_SIZE):
+	def __init__(self, debug=True, window_size=WINDOW_SIZE):
 		pygame.init()
 		self.success = True
-		imp.IMP().init(Screen(window_size), None, events.EventDispatcher(), True)
+		imp.IMP().init(Screen(window_size), None, events.EventDispatcher(), debug)
 
 	def register(self, objects):
 		for obj in objects:

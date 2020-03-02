@@ -163,7 +163,7 @@ class RenderText (Rect):
 
 	def create_default_style(self):
 		if self.font_style == None:
-			self.font_style = imp.Style()
+			self.font_style = style.Style()
 
 	def create_font(self):
 		return freetype.SysFont(self.font_style.font_name, self.font_style.font_size)

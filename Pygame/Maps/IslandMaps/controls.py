@@ -405,25 +405,30 @@ class Slider (Control):
 			self.slider.draw(surface, color)
 
 class TextBox (Control):
-	def __init__(self, left_top=(0, 0), size=(0, 0), min_size=(0, 0), max_size=(0, 0), can_grow=False, word_wrap=False):
-		super().__init__(left_top, size)
+	def __init__(self, left_top=(0, 0), min_size=(0, 0), max_size=(0, 0), can_grow=False, word_wrap=False):
+		super().__init__(left_top, min_size)
+		self.focus = False
 		self.can_grow = can_grow
 		self.word_wrap = word_wrap
 		self.min_w, self.min_h = self.min_size = min_size
 		self.max_w, self.max_h = self.max_size = max_size
-		self.box = go.BorderedRect(left_top, size)
+		self.box = go.BorderedRect(left_top, min_size)
+		self.cursor = go.VerticalLine((self.right - 1, self.top + 1), self.h - 2)
 
 	def set_size(self, size):
 		super().set_size(size)
 		self.box.set_size(size)
+		self.cursor.set_size((self.w, self.h - 2))
 
 	def set_position(self, left_top):
 		super().set_position(left_top)
 		self.box.set_position(left_top)
+		self.cursor.set_position((self.right - 1, self.top + 1))
 
 	def draw(self, surface):
 		if self.is_visible:
 			self.box.draw(surface, self.get_style('default').color)
+			self.cursor.draw(surface, self.get_style('default_border').color)
 			
 if __name__=='__main__':
 	import pygame
@@ -441,7 +446,7 @@ if __name__=='__main__':
 	btn_reset = Button('RESET')
 	slider_value = CounterBox(2, can_grow=True)
 	slider = Slider()
-	text_box = TextBox(size=(60, 20))
+	text_box = TextBox(min_size=(100, 40))
 
 	controls = []
 	controls.append(btn_enable)

@@ -446,7 +446,7 @@ if __name__=='__main__':
 	btn_reset = Button('RESET')
 	slider_value = CounterBox(2, can_grow=True)
 	slider = Slider()
-	text_box = TextBox(min_size=(100, 40))
+	text_box = TextBox(min_size=(100, 30))
 
 	controls = []
 	controls.append(btn_enable)
@@ -460,7 +460,7 @@ if __name__=='__main__':
 	controls.append(btn_reset)
 	controls.append(text_box)
 	
-	def position_controls(event):
+	def position_controls():
 		total_height = -10
 		for control in controls:
 			total_height += control.h + 10
@@ -469,7 +469,7 @@ if __name__=='__main__':
 		for control in controls:
 			control.center_on((left, top))
 			top += control.h + 10
-	position_controls(None)
+	position_controls()
 
 	def toggle_enable(event):		
 		chk_box.set_enabled(not chk_box.is_enabled)

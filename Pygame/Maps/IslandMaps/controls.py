@@ -405,37 +405,68 @@ class Slider (Control):
 			self.slider.draw(surface, color)
 
 class TextBox (Control):
+	CURSOR_BLINK = 0.53
+
 	def __init__(self, left_top=(0, 0), min_size=(0, 0), max_size=(0, 0), can_grow=False, word_wrap=False):
 		super().__init__(left_top, min_size)
-		self.focus = False
+		self.time = 0
+		self.prv_time = 0
+		self.has_focus = False
 		self.can_grow = can_grow
 		self.word_wrap = word_wrap
+		self.cursor_visible = False
 		self.min_w, self.min_h = self.min_size = min_size
 		self.max_w, self.max_h = self.max_size = max_size
 		self.box = go.BorderedRect(left_top, min_size)
-		self.cursor = go.VerticalLine((self.right - 1, self.top + 1), self.h - 2)
+		self.cursor = go.VerticalLine((self.x, self.top + 4), self.h - 8)
+		self.wire_events()
+
+	def wire_events(self):
+		imp.IMP().add_listener(events.MouseLeftButtonDownEvent().create(self.on_mouse_left_button_down))
+
+	def on_mouse_left_button_down(self, event):
+		if self.box.is_within(event.pos):
+			self.on_focus(event.pos)
+		else:
+			self.on_lose_focus()
+
+	def on_focus(self, mouse_pos):
+		self.has_focus = True
+
+	def on_lose_focus(self):
+		self.has_focus = False
 
 	def set_size(self, size):
 		super().set_size(size)
 		self.box.set_size(size)
-		self.cursor.set_size((self.w, self.h - 2))
+		self.cursor.set_size((self.w, self.h - 8))
 
 	def set_position(self, left_top):
 		super().set_position(left_top)
 		self.box.set_position(left_top)
-		self.cursor.set_position((self.right - 1, self.top + 1))
+		self.cursor.set_position((self.x, self.top + 4))
+
+	def update(self):
+		if self.has_focus:
+			current = time.time()
+			self.time += current  - self.prv_time
+			if self.time > TextBox.CURSOR_BLINK:
+				self.cursor_visible = not self.cursor_visible
+				self.time = 0
+			self.prv_time = current
 
 	def draw(self, surface):
 		if self.is_visible:
 			self.box.draw(surface, self.get_style('default').color)
-			self.cursor.draw(surface, self.get_style('default_border').color)
+			if self.has_focus and self.cursor_visible:
+				self.cursor.draw(surface, self.get_style('default_border').color)
 			
 if __name__=='__main__':
 	import pygame
 	import unit_test as ut
 
 	unit_test = ut.UnitTest(debug=False)
-	w, h = ut.WINDOW_SIZE
+	window_size = ut.WINDOW_SIZE
 
 	btn_enable = Button('DISABLE')
 	chk_box = CheckBox('IS CHECKED', on_checked=lambda event: print('OnChecked'))
@@ -446,7 +477,7 @@ if __name__=='__main__':
 	btn_reset = Button('RESET')
 	slider_value = CounterBox(2, can_grow=True)
 	slider = Slider()
-	text_box = TextBox(min_size=(100, 30))
+	text_box = TextBox(min_size=(100, 50))
 
 	controls = []
 	controls.append(btn_enable)
@@ -459,17 +490,6 @@ if __name__=='__main__':
 	controls.append(btn_start)
 	controls.append(btn_reset)
 	controls.append(text_box)
-	
-	def position_controls():
-		total_height = -10
-		for control in controls:
-			total_height += control.h + 10
-
-		left, top = (w // 2, h // 2 - total_height // 2)
-		for control in controls:
-			control.center_on((left, top))
-			top += control.h + 10
-	position_controls()
 
 	def toggle_enable(event):		
 		chk_box.set_enabled(not chk_box.is_enabled)
@@ -499,20 +519,27 @@ if __name__=='__main__':
 			stop_watch.start()
 	btn_start.on_click = start_stop
 
-	def on_resize(event):
-		global w, h 
-		w, h = event.w, event.h
+	def position_controls(w, h):
 		total_height = -10
 		for control in controls:
 			total_height += control.h + 10
 
-		left, top = (event.w // 2, event.h // 2 - total_height // 2)
+		left, top = (w // 2, h // 2 - total_height // 2)
 		for control in controls:
-			control.center_on((left, top))
+			control.set_position((left - control.w // 2, top))
 			top += control.h + 10
+	position_controls(*window_size)
+
+	def on_refresh(event):
+		position_controls(*window_size)
+
+	def on_resize(event):
+		global window_size
+		window_size = (event.w, event.h)
+		position_controls(*window_size)
 
 	imp.IMP().add_listener(events.UserEvent(CustomEvent.SLIDER_TICK).create(lambda event : slider_value.set_counter(event.value)))
-	imp.IMP().add_listener(events.UserEvent(CustomEvent.REFRESH_UI).create(position_controls))
+	imp.IMP().add_listener(events.UserEvent(CustomEvent.REFRESH_UI).create(on_refresh))
 	imp.IMP().add_listener(events.WindowResizedEvent().create(on_resize))
 
 	unit_test.register(controls)

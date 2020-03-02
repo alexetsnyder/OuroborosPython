@@ -403,6 +403,27 @@ class Slider (Control):
 			self.bar.draw(surface, color)
 			self.ruler.draw(surface)
 			self.slider.draw(surface, color)
+
+class TextBox (Control):
+	def __init__(self, left_top=(0, 0), size=(0, 0), min_size=(0, 0), max_size=(0, 0), can_grow=False, word_wrap=False):
+		super().__init__(left_top, size)
+		self.can_grow = can_grow
+		self.word_wrap = word_wrap
+		self.min_w, self.min_h = self.min_size = min_size
+		self.max_w, self.max_h = self.max_size = max_size
+		self.box = go.BorderedRect(left_top, size)
+
+	def set_size(self, size):
+		super().set_size(size)
+		self.box.set_size(size)
+
+	def set_position(self, left_top):
+		super().set_position(left_top)
+		self.box.set_position(left_top)
+
+	def draw(self, surface):
+		if self.is_visible:
+			self.box.draw(surface, self.get_style('default').color)
 			
 if __name__=='__main__':
 	import pygame
@@ -420,6 +441,7 @@ if __name__=='__main__':
 	btn_reset = Button('RESET')
 	slider_value = CounterBox(2, can_grow=True)
 	slider = Slider()
+	text_box = TextBox(size=(60, 20))
 
 	controls = []
 	controls.append(btn_enable)
@@ -431,6 +453,7 @@ if __name__=='__main__':
 	controls.append(stop_watch)
 	controls.append(btn_start)
 	controls.append(btn_reset)
+	controls.append(text_box)
 	
 	def position_controls(event):
 		total_height = -10
@@ -452,6 +475,7 @@ if __name__=='__main__':
 		stop_watch.set_enabled(not stop_watch.is_enabled)
 		btn_start.set_enabled(not btn_start.is_enabled)
 		btn_reset.set_enabled(not btn_reset.is_enabled)
+		text_box.set_enabled(not text_box.is_enabled)
 		btn_enable.set_text('ENABLE' if not chk_box.is_enabled else 'DISABLE')
 	btn_enable.on_click = toggle_enable
 

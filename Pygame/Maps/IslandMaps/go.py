@@ -151,50 +151,77 @@ class BorderedRect (Rect):
 		super().draw(surface, self.border_color)
 		self.inner_rect.draw(surface, color)
 
-class RenderText (Rect):
-	def __init__(self, text_str, font_style=None):
-		if not freetype.get_init():
-			freetype.init()
-		self.text_str = text_str
-		self.font_style = font_style
-		self.create_default_style()
+class Text (Rect):
+	def __init__(self, left_top, size, font_style):
+		super().__init__(left_top, size)
+		self.font_style = self.font_style = font_style if font_style else style.Style()
 		self.font = self.create_font()
-		super().__init__((0, 0), self.get_size())
-
-	def create_default_style(self):
-		if self.font_style == None:
-			self.font_style = style.Style()
 
 	def create_font(self):
 		return freetype.SysFont(self.font_style.font_name, self.font_style.font_size)
-
-	def set_text(self, text_str):
-		self.text_str = text_str
-		super().set_size(self.get_size())
-
-	def set_font_size(self, value):
-		self.font_style.font_size = value 
-		self.font = self.create_font()
-
-	def set_font_name(self, font):
-		self.font_style.font_name = font 
-		self.font = self.create_font()
 
 	def set_font_style(self, font_style):
 		self.font_style = font_style
 		self.font = self.create_font()
 
+	def draw_at(self, surface, text_str, color, position):
+		self.font.render_to(surface, position, text_str, color)
+
+	def draw(self, surface, text_str, color):
+		self.font.render_to(surface, self.left_top, text_str, color)
+
+class StaticText (Text):
+	def __init__(self, text_str, font_style=None):
+		self.text_str = text_str
+		super().__init__((0, 0), self.get_size(), font_style)
+
 	def get_size(self):
 		return self.font.get_rect(self.text_str).size 
 
-	def get_font_size(self):
-		return self.font_style.font_size
+	def set_text(self, text_str):
+		self.text_str = text_str
+		super().set_size(self.get_size())
 
-	def draw_at(self, surface, color, pos):
-		self.font.render_to(surface, pos, self.text_str, color)
+	def draw_at(self, surface, color, position):
+		super().draw(surface, self.text_str, color, position)
 
 	def draw(self, surface, color):
-		self.font.render_to(surface, self.left_top, self.text_str, color)
+		super().draw(surface, self.text_str, color)
+
+class ExpandingText (Text):
+	def __init__(self, text_str, left_top, size, font_style = None):
+		super().__init__(left_top, size, font_style)
+		self.lines = []
+		self.cursor = 0
+		self.set_size(size)
+
+	def set_text(self, text_str):
+		pass
+
+	def get_size(self):
+		return self.font.get_rect(self.lines[self.current]).size 
+
+	def build_strs(self):
+		built_strs = []
+		for i in len(self.lines):
+			built_str = ''
+			for j in range(self.cursor, len(self.lines[i])):
+				built_str += self.lines[i][j]
+			built_strs.append(built_str)
+			w, h = self.assay_size(built_strs)
+			if (w >= self.w or)
+
+	def assay_size(self, strs):
+		w, h = 0, 0		
+		for s in strs:
+			tw, th = self.font.get_rect(s).size
+			w, h = w + tw, h + th 
+
+	def draw_at(self, surface, color, position):
+		pass
+
+	def draw(self, surface, color):
+		pass
 
 if __name__=='__main__':
 	pass

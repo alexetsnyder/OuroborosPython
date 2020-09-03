@@ -1,5 +1,5 @@
 #imp.py
-import events
+import style, events
 
 def singleton(cls):	
 	class SingletonWrapper (cls):
@@ -23,6 +23,7 @@ class IMP:
 		self.actions = None
 		self.event_dispatcher = None
 		self.render_objects = []
+		self.styles = style.Styles()
 
 	def init(self, screen, config, event_dispatcher, debug=False):
 		self.debug = debug
@@ -33,7 +34,7 @@ class IMP:
 
 	def wire_events(self):
 		self.screen.wire_events()
-		self.event_dispatcher += events.QuitEvent().listen(self.on_quit)
+		self.event_dispatcher += events.QuitEvent().create(self.on_quit)
 
 	def on_quit(self, event):
 		self.running = False
@@ -49,6 +50,10 @@ class IMP:
 
 	def dispatch(self, event):
 		self.event_dispatcher.invoke(event)
+
+	def update(self):
+		for obj in self.render_objects:
+			obj.update()
 
 	def draw(self):
 		for obj in self.render_objects:

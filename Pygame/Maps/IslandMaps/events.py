@@ -1,7 +1,7 @@
 #events.py
+import imp
 import pygame
 from pygame import freetype
-import imp
 from structs import *
 
 PYGAME_EVENT_TYPE_TO_STRING = {
@@ -30,11 +30,15 @@ PYGAME_KEY_TO_STRING = {
 	pygame.K_9 		: '9',
 	pygame.K_0 		: '0',
 	pygame.K_t      : 't',
-	pygame.K_r      : 'r'
+	pygame.K_r      : 'r',
+	pygame.K_e      : 'e',
+	pygame.K_v      : 'v',
+	pygame.K_s      : 's'
 }
 
 PYGAME_USEREVENT_NAME_TO_STRING = {
-	
+	CustomEvent.REFRESH_UI  : 'REFRESH_UI',
+	CustomEvent.SLIDER_TICK : 'SLIDER_TICK'
 }
 
 PYGAME_MOUSE_BUTTON_TO_STRING = {
@@ -185,7 +189,7 @@ class Event:
 		event = pygame.event.Event(self.types['type'], **self.without_type(), **kargs)
 		pygame.event.post(event)
 
-	def listen(self, *args, quell=False):
+	def create(self, *args, quell=False):
 		delegate = Delegate(self.name, quell=quell, **self.types)
 		for arg in args:
 			delegate += arg 

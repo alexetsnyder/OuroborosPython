@@ -1,21 +1,35 @@
 #structs.py
 
 class Color:
-	WHITE  		  = (255, 255, 255, 255)
-	BLACK  		  = (  0,   0,   0, 255)
-	RED           = (255,   0,   0, 255)
-	GREEN  		  = (  0, 255,   0, 255)
-	SEA_GREEN     = ( 46, 139,  87, 255)
-	FOREST_GREEN  = ( 13,  55,  13, 255)
-	TEAL_FELT     = ( 20, 118,  98, 255)
-	BLUE   		  = (  0,   0, 255, 255)
-	ALICE_BLUE    = (240, 248, 255, 255)
-	DEEP_SKY_BLUE = (  0, 191, 255, 255)
-	YELLOW 		  = (255, 255,   0, 255)
-	SAND          = ( 76,  70,  50, 255)
-	SILVER 		  = (192, 192, 192, 255)
-	GREY          = (128, 128, 128, 255)
-	TRANSPARENT   = (  0,   0,   0,   0)
+	WHITE  		     = (255, 255, 255, 255)
+	BLACK  		     = (  0,   0,   0, 255)
+	RED              = (255,   0,   0, 255)
+	LIGHT_CORAL      = (240, 128, 128, 255)
+	GREEN  		     = (  0, 255,   0, 255)
+	LIGHT_SEA_GREEN  = ( 32, 178, 170, 255)
+	MEDIUM_SEA_GREEN = ( 60, 179, 113, 255)
+	SEA_GREEN        = ( 46, 139,  87, 255)
+	DARK_SEA_GREEN   = (143, 188, 143, 255)
+	FOREST_GREEN     = ( 13,  55,  13, 255)
+	TEAL_FELT        = ( 20, 118,  98, 255)
+	SLATE_BLUE       = (106,  90, 205, 255)
+	DARK_SLATE_BLUE  = ( 72,  61, 139, 255)
+	BLUE   		     = (  0,   0, 255, 255)
+	MEDIUM_BLUE      = (  0,   0, 205, 255)
+	ROYAL_BLUE   	 = ( 65, 105, 225, 255)
+	MIDNIGHT_BLUE    = ( 25,  25, 112, 255)
+	ALICE_BLUE       = (240, 248, 255, 255)
+	LIGHT_SKY_BLUE   = (135, 206, 250, 255)
+	SKY_BLUE         = (135, 206, 235, 255)
+	DEEP_SKY_BLUE    = (  0, 191, 255, 255)
+	YELLOW 		     = (255, 255,   0, 255)
+	SAND             = ( 76,  70,  50, 255)
+	LIGHT_GREY       = (211, 211, 211, 255)
+	SILVER 		     = (192, 192, 192, 255)
+	GREY             = (128, 128, 128, 255)
+	DIM_GREY         = (105, 105, 105, 255)
+	SLATE_GREY       = (112, 128, 144, 255)
+	TRANSPARENT      = (  0,   0,   0,   0)
 
 class MouseButton:
 	LEFT           = 1
@@ -25,7 +39,8 @@ class MouseButton:
 	BACKWARD_WHEEL = 5
 
 class CustomEvent:
-	pass
+	REFRESH_UI  = 1
+	SLIDER_TICK = 2
 
 class WindowSide:
 	LEFT   = 0

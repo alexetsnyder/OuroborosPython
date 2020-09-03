@@ -1,344 +1,147 @@
 #controls.py
-import math, time
-import go, imp, events
-from geo import plottable
+import time, math
+import go, imp, style, events
 from structs import *
 
-@plottable
-class Control:
-	def __init__(self, left_top, controls=[], window_or=WindowOr.VERTICAL, default_size=(20, 20), is_override=False):
-		self.mw, self.mh = self.margin = (8, 8)
-		self.window_or = window_or
-		self.children = controls
-		self.set_default(default_size, is_override)
-		self.set_size(self.assay_size())
-		self.set_position(left_top)
+class Control (go.Rect):
+	def __init__(self, left_top=(0, 0), size=(0, 0), is_visible=True, is_enabled=True):
+		super().__init__(left_top, size)
+		self.mw, self.mh = self.margins = (8, 8)
+		Control.set_enabled(self, is_enabled)
+		Control.set_visibility(self, is_visible)
 
-	def set_size(self, size):
+	def set_visibility(self, is_visible):
+		self.is_visible = is_visible
+
+	def set_enabled(self, is_enabled):
+		self.is_enabled = is_enabled
+
+	def get_style(self, key):
+		postfix = ''
+		if self.is_enabled:
+			postfix = 'enabled'
+		else:
+			postfix = 'disabled'
+		return imp.IMP().styles.try_get('{}_{}'.format(key, postfix), style.Style())
+
+	def update(self):
 		pass
 
-	def set_position(self, left_top):
-		self.position_children()
-
-	def set_window_or(self, window_or, left_top):
-		self.window_or = window_or
-		self.set_size(self.assay_size())
-		self.set_position(left_top)
-
-	def set_default(self, default_size, is_override=False):
-		self.set_override(is_override)
-		self.default_w, self.default_h = self.default_size = default_size
-
-	def set_override(self, is_override):
-		self.is_override = is_override
-
-	def assay_size(self):
-		return (self.get_w(), self.get_h())
-
-	def position_children(self):
-		if self.window_or == WindowOr.VERTICAL:
-			x = self.x
-			y = self.top 
-			for child in self.children:
-				child.center_on((x, y + child.h // 2))
-				y += child.h + self.mh
-		else:
-			x = self.left
-			y = self.top
-			for child in self.children:
-				child.center_on((x + child.w // 2, y + 3 * child.h // 4))
-				x += child.w + self.mw
-
-	def get_w(self):
-		if self.is_override or not any(self.children):
-			return self.default_w + self.mw
-		if self.window_or == WindowOr.VERTICAL:
-			return self.get_max_width()	
-		return self.get_total_width()
-
-	def get_max_width(self):
-		max_width = 0
-		for child in self.children:
-			width = child.w
-			if width > max_width:
-				max_width = width 
-		return max_width + self.mw
-
-	def get_total_width(self):
-		total_width = 0
-		for child in self.children:
-			total_width += child.w
-		return total_width + self.mw
-
-	def get_h(self):
-		if self.is_override or not any(self.children):
-			return self.default_h + self.mh
-		if self.window_or == WindowOr.VERTICAL:
-			return self.get_total_height()
-		return self.get_max_height()
-
-	def get_max_height(self):
-		max_height = 0
-		for child in self.children:
-			height = child.h
-			if height > max_height:
-				max_height = height
-		return max_height + self.mh
-
-	def get_total_height(self):
-		total_height = 0
-		for child in self.children:
-			total_height += child.h
-		return total_height + self.mh
-
-	def update(self):
-		for child in self.children:
-			child.update()
-
 	def draw(self, surface):
-		for control in self.children:
-			control.draw(surface)
-
-class BlankControl (Control):
-	def __init__(self, left_top, size):
-		super().__init__(left_top, default_size=size)
-
-class SideBar (Control):
-	def __init__(self, window_size, side, controls=[], color=Color.SEA_GREEN):
-		self.color = color 
-		self.is_showing = True
-		self.window_side = side 
-		self.window_width, self.window_height = self.window_size = window_size
-		self.btn_show = Button('', on_click=self.on_click_toggle_bar)
-		controls.insert(0, self.btn_show)
-		self.rect = go.Rect((0, 0), (0, 0), color=self.color)
-		self.set_btn_text()
-		super().__init__((0, 0), controls=controls, default_size=self.btn_show.size, window_or=self.get_windows_or())
-		self.wire_events()
-
-	def set_size(self, size):
-		super().set_size(size)
-		self.rect.set_size(size)
-
-	def set_position(self, left_top):
-		left, top = left_top
-		w, h = self.btn_show.size 
-		button_center = (left + self.w - w // 2, top + h // 2)
-		if self.window_side == WindowSide.RIGHT:
-			left, top = (left + self.window_width - self.w, top)
-			button_center = (left + w // 2, top + h // 2)
-		elif self.window_side == WindowSide.TOP:
-			button_center = (left + w // 2, top + self.h - h // 2 - 2)
-		elif self.window_side == WindowSide.BOTTOM:
-			left, top = (left, top + self.window_height - self.h)
-			button_center = (left + w // 2, top + h // 2)
-		super().set_position((left, top))
-		self.rect.set_position((left, top))
-		self.btn_show.center_on(button_center)
-
-	def set_default(self, size, is_override=False):
-		w, h = size 
-		new_size = None
-		if self.window_side in [WindowSide.LEFT, WindowSide.RIGHT]:
-			new_size = (w - self.mw, h)
-		elif self.window_side in [WindowSide.TOP, WindowSide.BOTTOM]:
-			new_size = (w, h - self.mh)
-		super().set_default(new_size, is_override)
-
-	def set_window_side(self, window_side):
-		self.window_side = window_side
-		self.set_btn_text()
-		self.set_window_or(self.get_windows_or(), (0, 0))
-
-	def get_windows_or(self):
-		if self.window_side in [WindowSide.LEFT, WindowSide.RIGHT]:
-			return WindowOr.VERTICAL
-		else:
-			return WindowOr.HORIZONTAL
-		
-	def wire_events(self):
-		imp.IMP().add_delegate(events.WindowResizedEvent().listen(self.on_resize))
-		imp.IMP().add_delegate(events.UserEvent(CustomEvent.REFRESH_SIDEBAR).listen(self.on_refresh_sidebar))
-
-	def on_resize(self, event):
-		self.window_width, self.window_height = self.window_size = (event.w, event.h)
-		self.set_size(self.assay_size())
-		self.set_position((0, 0))
-
-	def on_refresh_sidebar(self, event):
-		self.set_size(self.assay_size())
-		self.set_position((0, 0))
-
-	def on_click_toggle_bar(self, event):
-		self.toggle_bar()
-
-	def toggle_bar(self):
-		self.is_showing = not self.is_showing
-		self.set_btn_text()
-		if self.is_showing:
-			self.set_override(False)
-			self.show_buttons()
-		else:
-			self.set_override(True)
-			self.show_buttons(is_show=False)	
-		self.set_size(self.assay_size())
-		self.set_position((0, 0))
-
-	def set_btn_text(self):
-		left_btn_text = '<<<'
-		right_btn_text = '>>>'
-		top_btn_text = '/\\'
-		bottom_btn_text = '\\/'
-		if not self.is_showing:
-			left_btn_text, right_btn_text = right_btn_text, left_btn_text
-			top_btn_text, bottom_btn_text = bottom_btn_text, top_btn_text
-		if self.window_side == WindowSide.LEFT:
-			self.btn_show.set_text(left_btn_text)
-		elif self.window_side == WindowSide.RIGHT:
-			self.btn_show.set_text(right_btn_text)
-		elif self.window_side == WindowSide.TOP:
-			self.btn_show.set_text(top_btn_text)
-		else: #self.window_side == WindowSide.BOTTOM:
-			self.btn_show.set_text(bottom_btn_text)
-
-	def show_buttons(self, is_show=True):
-		for btn in self.children:
-			btn.set_visibility(is_show)
-		self.btn_show.set_visibility(True)
-
-	def enable_buttons(self, is_enabled=True):
-		for btn in self.children:
-			btn.set_enabled(is_enabled)
-		self.btn_show.set_enabled(True)
-
-	def get_w(self):
-		if self.window_side in [WindowSide.LEFT, WindowSide.RIGHT]:
-			return super().get_w()
-		return self.window_width
-
-	def get_h(self):
-		if self.window_side in [WindowSide.TOP, WindowSide.BOTTOM]:
-			return super().get_h()
-		return self.window_height
-
-	def update(self):
-		self.rect.update()
-		super().update()
-
-	def draw(self, surface):
-		self.rect.draw(surface)
-		super().draw(surface)
+		pass
 
 class Button (Control):
-	def __init__(self, btn_str, on_click=None, left_top=(0, 0), color=Color.ALICE_BLUE, active_color=Color.RED):
-		self.color = color 
+	def __init__(self, text, on_click=None, left_top=(0, 0), min_size=(0, 0), is_visible=True, is_enabled=True):
+		super().__init__(left_top, is_enabled=is_enabled, is_visible=is_visible)
 		self.is_active = False
-		self.is_enabled = True
-		self.is_visible = True
 		self.on_click = on_click
-		self.active_color = active_color
-		self.btn_font = go.FontInfo(font_size=10, font_color=Color.BLACK)
-		self.btn_text = go.RenderText(btn_str, self.btn_font)
-		self.rect = go.Rect(left_top, (0, 0), color=self.color)
-		super().__init__(left_top, default_size=self.btn_text.size)
+		self.min_w, self.min_h = self.min_size = min_size
+		self.font_style = self.get_text_style()
+		self.btn_txt = go.RenderText(text, self.font_style)
+		self.btn_bck = go.BorderedRect((0, 0), (0, 0))
+		self.set_size(self.get_size())
+		self.set_position(self.left_top)
 		self.wire_events()
 
 	def wire_events(self):
-		imp.IMP().add_delegate(events.MouseMotionEvent().listen(self.on_mouse_motion, quell=True))
-		imp.IMP().add_delegate(events.MouseLeftButtonDownEvent().listen(self.on_mouse_left_button_down))
-
-	def set_size(self, size):
-		super().set_size(size)
-		self.rect.set_size(size)
-
-	def set_position(self, left_top):
-		super().set_position(left_top)
-		self.rect.set_position(left_top)
-		self.btn_text.center_on(self.center)
-
-	def set_text(self, text):
-		self.btn_text.set_text(text)
-		self.set_size(tuple(x + 6 for x in self.btn_text.size))
-		self.set_default(self.btn_text.size)
-
-	def set_onclick(self, method):
-		self.on_click = method 
+		imp.IMP().add_listener(events.MouseMotionEvent().create(self.on_mouse_motion, quell=True))
+		imp.IMP().add_listener(events.MouseLeftButtonDownEvent().create(self.on_mouse_left_button_down))
 
 	def on_mouse_motion(self, event):
-		if self.rect.is_within(event.pos):
+		if self.btn_bck.is_within(event.pos):
 			self.is_active = True
 		else:
 			self.is_active = False
 
 	def on_mouse_left_button_down(self, event):
-		if self.rect.is_within(event.pos):
-			self.click(event)
-
-	def click(self, event):
-		if self.is_enabled and self.is_visible:
-			if not self.on_click == None:
+		if not self.on_click == None:
+			if self.is_enabled and self.is_active:
 				self.on_click(event)
 
-	def set_enabled(self, is_enabled):
-		self.is_enabled = is_enabled
-		if self.is_enabled:
-			self.btn_font.font_color = Color.BLACK
-		else:
-			self.btn_font.font_color = Color.GREY
-		self.btn_text.set_font_info(self.btn_font)
-
-	def set_visibility(self, is_visible):
-		self.is_visible = is_visible
-		self.btn_text.set_visibility(is_visible)
-		self.rect.set_visibility(is_visible)
-
-	def get_color(self):
+	def get_style(self):
 		if self.is_enabled and self.is_active:
-			return self.active_color
-		else:
-			return self.color
+			return imp.IMP().styles.try_get('btn_active', style.Style())
+		return super().get_style('default')
+
+	def get_text_style(self):
+		return super().get_style('default_text')
+
+	def set_size(self, size):
+		w, h = size
+		fixed_size = (w + self.mw, h + self.mh)
+		super().set_size(fixed_size)
+		self.btn_bck.set_size(fixed_size)
+
+	def set_position(self, left_top):
+		super().set_position(left_top)
+		self.btn_bck.set_position(self.left_top)
+		self.btn_txt.center_on(self.center)
+
+	def set_text(self, btn_txt):
+		self.btn_txt.set_text(btn_txt)
+		self.set_size(self.get_size())
+		events.UserEvent(CustomEvent.REFRESH_UI).post(sender=self)
+
+	def get_size(self):
+		w, h = self.btn_txt.size 
+		if self.min_w > 0:
+			w = self.min_w 
+		if self.min_h > 0:
+			h = self.min_h
+		return (w, h)
 
 	def draw(self, surface):
-		self.rect.set_color(self.get_color())
-		self.rect.draw(surface)
-		self.btn_text.draw(surface)
-		super().draw(surface)
+		if self.is_visible:
+			self.btn_bck.draw(surface, self.get_style().color)
+			self.btn_txt.draw(surface, self.get_text_style().color)
 
 class CheckBox (Control):
-	def __init__(self, lbl_str, left_top=(0, 0), on_checked=None, is_checked=False, color=Color.BLACK, checked_color=Color.BLACK):
-		self.is_checked = is_checked
-		self.color = color 
-		self.checked_color = checked_color
+	def __init__(self, lbl_str, on_checked=None, left_top=(0, 0)):
+		super().__init__()
 		self.is_active = False
-		self.is_enabled = True
-		self.is_visible = True
+		self.is_checked = False
 		self.on_checked = on_checked
-		self.font_info = go.FontInfo(font_size=10, font_color=Color.BLACK)
-		self.lbl_text = go.RenderText(lbl_str, self.font_info)
-		self.check_box = go.Rect(left_top, (10, 10), color=color, width=1)
-		self.fill_box = go.Rect(left_top, (10, 10), color=checked_color)
-		super().__init__(left_top, default_size=tuple(x + 10 for x in self.lbl_text.size))
+		self.font_style = self.get_style('default_text')
+		self.lbl_text = go.RenderText(lbl_str, self.font_style)
+		self.check_box = go.BorderedRect(left_top, (10, 10))
+		self.fill_box = go.Rect(left_top, (10, 10))
+		self.set_size(tuple(x + 10 for x in self.lbl_text.size))
+		self.set_position(left_top)
 		self.wire_events()
 
 	def wire_events(self):
-		imp.IMP().add_delegate(events.MouseLeftButtonDownEvent().listen(self.on_mouse_left_button_down))
+		imp.IMP().add_listener(events.MouseLeftButtonDownEvent().create(self.on_mouse_left_button_down))
+		imp.IMP().add_listener(events.MouseMotionEvent().create(self.on_mouse_motion, quell=True))
+
+	def on_mouse_left_button_down(self, event):
+		if self.is_enabled and self.is_active:			
+			self.checked(event)
+
+	def on_mouse_motion(self, event):
+		if self.check_box.is_within(event.pos):
+			self.is_active = True
+		else:
+			self.is_active = False
 
 	def set_position(self, left_top):
 		super().set_position(left_top)
 		self.check_box.set_position(left_top)
 		self.fill_box.set_position(left_top)
-		self.lbl_text.set_position((self.left + 12, self.top + self.lbl_text.h // 8))
+		self.lbl_text.set_position((self.left + 12, self.top))
+		self.lbl_text.center_on((self.lbl_text.x, self.check_box.y))
 
 	def set_text(self, text):
 		self.lbl_text.set_text(text)
-		self.set_default(tuple(x + 10 for x in self.lbl_text.size))
+		self.set_size(tuple(x + 10 for x in self.lbl_text.size))
+		events.UserEvent(CustomEvent.REFRESH_UI).post(sender=self)
 
 	def set_onchecked(self, method):
 		self.on_checked = method 
 
-	def on_mouse_left_button_down(self, event):
-		if self.check_box.is_within(event.pos):			
-			self.checked(event)
+	def get_checkbox_style(self):
+		if self.is_enabled and self.is_active:
+			return imp.IMP().styles.try_get('btn_active', style.Style())
+		return super().get_style('default')
 
 	def checked(self, event):
 		if self.is_enabled and self.is_visible:
@@ -346,44 +149,28 @@ class CheckBox (Control):
 			if not self.on_checked == None:
 				self.on_checked(event)
 
-	def set_enabled(self, is_enabled):
-		self.is_enabled = is_enabled
-		if self.is_enabled:
-			self.check_box.set_color(Color.BLACK)
-			self.fill_box.set_color(Color.BLACK)
-		else:
-			self.check_box.set_color(Color.GREY)
-			self.fill_box.set_color(Color.GREY)
-
-	def set_visibility(self, is_visible):
-		self.is_visible = is_visible
-		self.lbl_text.set_visibility(is_visible)
-		self.check_box.set_visibility(is_visible)
-		self.fill_box.set_visibility(is_visible)
-
 	def draw(self, surface):
-		self.check_box.draw(surface)
-		if self.is_checked:
-			self.fill_box.draw(surface)
-		self.lbl_text.draw(surface)
-		super().draw(surface)
+		if self.is_visible:
+			self.check_box.draw(surface, self.get_checkbox_style().color)
+			if self.is_checked:
+				self.fill_box.draw(surface, self.get_style('check_mark').color)
+			self.lbl_text.draw(surface, self.get_style('default_text').color)
 
 class StopWatch (Control):
-	def __init__(self, left_top=(0, 0), color=Color.BLACK, digit_color=Color.RED):
-		self.color = color 
-		self.digit_color = digit_color
-		self.is_visible = True
+	def __init__(self, left_top=(0, 0), digit_color=Color.RED):
+		super().__init__()
 		self.time = 0
 		self.prv_time = 0
 		self.padding = 4
 		self.is_running = False
-		self.font_info = go.FontInfo(font_size=20, font_color=digit_color)
-		self.seperator_txt = go.RenderText(':', self.font_info)
-		self.seconds_txt = go.RenderText(self.display_format(0), self.font_info)
-		self.minutes_txt = go.RenderText(self.display_format(0), self.font_info)
-		self.hours_txt = go.RenderText(self.display_format(0), self.font_info)
-		self.box = go.Rect(left_top, (0, 0), color=color)
-		super().__init__(left_top, default_size=self.get_clock_size())
+		self.font_style = self.get_style('digit_text')
+		self.seperator_txt = go.RenderText(':', self.font_style)
+		self.seconds_txt = go.RenderText(self.display_format(0), self.font_style)
+		self.minutes_txt = go.RenderText(self.display_format(0), self.font_style)
+		self.hours_txt = go.RenderText(self.display_format(0), self.font_style)
+		self.box = go.BorderedRect(left_top, (0, 0))
+		self.set_size(self.get_clock_size())
+		self.set_position(left_top)
 
 	def set_display(self):
 		hours, minutes, seconds = self.get_time()
@@ -404,7 +191,7 @@ class StopWatch (Control):
 	def set_position(self, left_top):
 		super().set_position(left_top)
 		self.box.set_position(self.left_top)
-		left = self.left + self.padding * 2
+		left = self.left + self.padding
 		self.hours_txt.set_position((left, self.y - self.hours_txt.h // 2))
 		left += self.hours_txt.w + self.seperator_txt.w + self.padding
 		self.minutes_txt.set_position((left, self.y - self.minutes_txt.h // 2))
@@ -417,19 +204,11 @@ class StopWatch (Control):
 		clock_width += self.minutes_txt.w + self.padding // 2
 		clock_width += self.seperator_txt.w + self.padding // 2
 		clock_width += self.seconds_txt.w + self.padding
-		return (clock_width, self.seconds_txt.h + self.padding)
+		return (clock_width, self.seconds_txt.h + self.padding + 2)
 
 	def get_time(self):
 		r_time = math.ceil(self.time)
 		return ((r_time//60//60), (r_time//60)%60, r_time%60)
-
-	def set_visibility(self, is_visible):
-		self.is_visible = is_visible
-		self.box.set_visibility(self.is_visible)
-		self.seperator_txt.set_visibility(self.is_visible)
-		self.hours_txt.set_visibility(self.is_visible)
-		self.minutes_txt.set_visibility(self.is_visible)
-		self.seconds_txt.set_visibility(self.is_visible)
 
 	def start(self):
 		self.prv_time = time.time()
@@ -439,7 +218,7 @@ class StopWatch (Control):
 		self.is_running = False
 
 	def reset(self):
-		self.is_running = False
+		self.stop()
 		self.time = self.prv_time = 0
 
 	def tick(self):
@@ -451,45 +230,40 @@ class StopWatch (Control):
 	def update(self):
 		self.tick()
 		self.set_display()
-		self.set_position(self.origin)
-		self.seperator_txt.update()
-		self.seconds_txt.update()
-		self.minutes_txt.update()
-		self.hours_txt.update()
-		self.box.update()
+		self.set_position(self.left_top)
 
 	def draw_clock(self, surface):
-		left = self.left + self.padding + 2
-		self.hours_txt.draw(surface)
+		digit_color = self.get_style('digit_text').color
+		left = self.left
+		self.hours_txt.draw(surface, digit_color)
 		left += self.hours_txt.w + self.padding
-		self.seperator_txt.draw_at(surface, (left, self.top + self.h // 4 + 2))
+		self.seperator_txt.draw_at(surface, digit_color, (left + 2, self.top + self.h // 4))
 		left += self.seperator_txt.w + self.padding // 2
-		self.minutes_txt.draw(surface)
+		self.minutes_txt.draw(surface, digit_color)
 		left += self.minutes_txt.w + 2
-		self.seperator_txt.draw_at(surface, (left, self.top + self.h // 4 + 2))
-		self.seconds_txt.draw(surface)
+		self.seperator_txt.draw_at(surface, digit_color, (left + 2, self.top + self.h // 4))
+		self.seconds_txt.draw(surface, digit_color)
 
 	def draw(self, surface):
-		self.box.draw(surface)
-		self.draw_clock(surface)
-		super().draw(surface)
+		if self.is_visible:
+			self.box.draw(surface, self.get_style('clockback').color)
+			self.draw_clock(surface)
 
 class CounterBox (Control):
-	def __init__(self, digits, can_grow=False, limit=100, left_top=(0, 0), color=Color.BLACK, digit_color=Color.RED):
-		self.color = color 
-		self.digit_color = digit_color
+	def __init__(self, digits, can_grow=False, limit=100, left_top=(0, 0)):
+		super().__init__()
 		self.limit = limit
 		self.can_grow = can_grow
 		self.digits = digits
 		self.post_update = False
 		self.div = 10 * int('{}{}'.format(1, ''.join(['0' for i in range(self.digits-1)])))
 		self.counter = 0
-		self.padding = 4
-		self.is_visible = True
-		self.box = go.Rect(left_top, (0, 0), color=color)
-		self.font_info = go.FontInfo(font_size=30, font_color=digit_color)
-		self.display_text = go.RenderText(self.get_display_str(), font_info=self.font_info)
-		super().__init__(left_top, default_size=tuple(x + self.padding for x in self.display_text.size))
+		self.padding = 10
+		self.box = go.BorderedRect(left_top, (0, 0))
+		self.font_style = self.get_style('digit_text')
+		self.display_text = go.RenderText(self.get_display_str(), font_style=self.font_style)
+		self.set_size(tuple(x + self.padding for x in self.display_text.size))
+		self.set_position(left_top)
 
 	def set_size(self, size):
 		super().set_size(size)
@@ -497,20 +271,18 @@ class CounterBox (Control):
 
 	def set_position(self, left_top):
 		super().set_position(left_top)
-		self.box.set_position((self.left, self.top))
+		self.box.set_position(self.left_top)
 		self.display_text.center_on(self.center)
+
+	def set_counter(self, n):
+		self.counter = n
 
 	def get_display_str(self):
 		format_str = '{:0' + str(self.digits) + '}'
 		return format_str.format(self.counter)
 
-	def post_sidebar_refresh(self):
-		events.UserEvent(CustomEvent.REFRESH_SIDEBAR).post()
-
-	def set_visibility(self, is_visible):
-		self.is_visible = is_visible
-		self.box.set_visibility(self.is_visible)
-		self.display_text.set_visibility(self.is_visible)
+	def post_refresh(self):
+		events.UserEvent(CustomEvent.REFRESH_UI).post(sender=self)
 
 	def reset(self):
 		self.counter = 0
@@ -525,7 +297,11 @@ class CounterBox (Control):
 		if self.can_grow and self.counter / self.div >= 1:
 			self.div *= 10
 			self.post_update = True
-			self.post_sidebar_refresh()
+			self.post_refresh()
+		elif self.counter > 0 and self.counter < self.div // 10:
+			self.post_update = True
+			self.post_refresh()
+			self.div //= 10
 		elif not self.can_grow and self.counter >= self.limit:
 			self.counter = 0
 
@@ -534,97 +310,237 @@ class CounterBox (Control):
 		self.display_text.set_text(self.get_display_str())
 		if self.post_update:
 			self.set_size(tuple(x + self.padding for x in self.display_text.size))
-			self.set_position(self.origin)
+			self.set_position(self.left_top)
 			self.post_update = False
-		self.display_text.update()
-		self.box.update()
 
 	def draw(self, surface):
-		self.box.draw(surface)
-		self.display_text.draw(surface)
-		super().draw(surface)
+		if self.is_visible:
+			self.box.draw(surface, self.get_style('clockback').color)
+			self.display_text.draw(surface, self.get_style('digit_text').color)
 
+class Ruler (Control):
+	def __init__(self, left_top, size):
+		super().__init__(left_top, size)
+		self.lines = []
+		self.generate()
+
+	def set_position(self, left_top):
+		super().set_position(left_top)
+		if len(self.lines) == 5:
+			self.lines[0].set_position((self.left, self.top))
+			self.lines[1].set_position((self.left + self.w // 4, self.top))
+			self.lines[2].set_position((self.x, self.top))
+			self.lines[3].set_position((self.x + self.w // 4, self.top))
+			self.lines[4].set_position((self.right - 1, self.top))
+
+	def generate(self):
+		self.lines.append(go.VerticalLine((self.left, self.top), 2 * self.h))
+		self.lines.append(go.VerticalLine((self.left + self.w // 4, self.top), self.h + self.h // 2))
+		self.lines.append(go.VerticalLine((self.x, self.top), 2 * self.h))
+		self.lines.append(go.VerticalLine((self.x + self.w // 4, self.top), self.h + self.h // 2))
+		self.lines.append(go.VerticalLine((self.right - 1, self.top), 2 * self.h))
+
+	def draw(self, surface):
+		color = self.get_style('default_border').color 
+		for line in self.lines:
+			line.draw(surface, color)
+
+class Slider (Control):
+	def __init__(self, slider_width=8, length=100, left_top=(0, 0)):
+		super().__init__()
+		self.ruler = None
+		self.tick_value = 0
+		self.length = length
+		self.fixed_height = 6
+		self.is_dragging = False	
+		self.slider_width = slider_width
+		self.sw, self.sh = self.slider_size = (slider_width, 2 * self.fixed_height + 10)	
+		self.bar = go.BorderedRect((0, 0), (length, self.fixed_height))
+		self.slider = go.BorderedRect((0, 0), self.slider_size)
+		self.set_size((length, self.sh))
+		self.set_position(left_top)
+		self.tick_length = (self.bar.right - self.bar.left) / 100
+		self.ruler = Ruler(self.bar.left_top, self.bar.size)
+		self.wire_events()
+
+	def wire_events(self):
+		imp.IMP().add_listener(events.MouseLeftButtonDownEvent().create(self.on_mouse_left_button_down))
+		imp.IMP().add_listener(events.MouseLeftButtonUpEvent().create(self.on_mouse_left_button_up))
+		imp.IMP().add_listener(events.MouseMotionEvent().create(self.on_mouse_motion, quell=True))
+
+	def on_mouse_left_button_down(self, event):
+		if self.slider.is_within(event.pos):
+			self.is_dragging = True
+
+	def on_mouse_left_button_up(self, event):
+		self.is_dragging = False
+
+	def on_mouse_motion(self, event):
+		if self.is_enabled and self.is_dragging:
+			x, y = event.pos 
+			if x - self.slider.w // 2 < self.bar.left:
+				x = self.bar.left
+			if x + self.slider.w // 2 > self.bar.right:
+				x = self.bar.right
+			self.slider.set_position((x - self.slider.w // 2, self.bar.y - self.h // 2))
+			self.post_tick_event()
+
+	def post_tick_event(self):
+		self.tick_value = self.slider.x - self.bar.left
+		events.UserEvent(CustomEvent.SLIDER_TICK).post(value=round(self.tick_value / self.tick_length))
+
+	def set_position(self, left_top):
+		super().set_position(left_top)
+		slider_x = self.tick_value + self.left
+		self.bar.set_position((self.left, self.y - self.bar.h // 2))
+		self.slider.set_position((slider_x - self.slider.w // 2, self.bar.y - self.h // 2))	
+		if not self.ruler == None:
+			self.ruler.set_position(self.bar.left_top)
+
+	def draw(self, surface):
+		color = self.get_style('default').color
+		if self.is_visible:
+			self.bar.draw(surface, color)
+			self.ruler.draw(surface)
+			self.slider.draw(surface, color)
+
+class TextBox (Control):
+	CURSOR_BLINK = 0.53
+
+	def __init__(self, left_top=(0, 0), min_size=(0, 0), max_size=(0, 0), can_grow=False, word_wrap=False):
+		super().__init__(left_top, min_size)
+		self.time = 0
+		self.prv_time = 0
+		self.has_focus = False
+		self.can_grow = can_grow
+		self.word_wrap = word_wrap
+		self.cursor_visible = False
+		self.min_w, self.min_h = self.min_size = min_size
+		self.max_w, self.max_h = self.max_size = max_size
+		self.box = go.BorderedRect(left_top, min_size)
+		self.cursor = go.VerticalLine((self.x, self.top + 4), self.h - 8)
+		self.wire_events()
+
+	def wire_events(self):
+		imp.IMP().add_listener(events.MouseLeftButtonDownEvent().create(self.on_mouse_left_button_down))
+
+	def on_mouse_left_button_down(self, event):
+		if self.box.is_within(event.pos):
+			self.on_focus(event.pos)
+		else:
+			self.on_lose_focus()
+
+	def on_focus(self, mouse_pos):
+		self.has_focus = True
+
+	def on_lose_focus(self):
+		self.has_focus = False
+
+	def set_size(self, size):
+		super().set_size(size)
+		self.box.set_size(size)
+		self.cursor.set_size((self.w, self.h - 8))
+
+	def set_position(self, left_top):
+		super().set_position(left_top)
+		self.box.set_position(left_top)
+		self.cursor.set_position((self.x, self.top + 4))
+
+	def update(self):
+		if self.has_focus:
+			current = time.time()
+			self.time += current  - self.prv_time
+			if self.time > TextBox.CURSOR_BLINK:
+				self.cursor_visible = not self.cursor_visible
+				self.time = 0
+			self.prv_time = current
+
+	def draw(self, surface):
+		if self.is_visible:
+			self.box.draw(surface, self.get_style('default').color)
+			if self.has_focus and self.cursor_visible:
+				self.cursor.draw(surface, self.get_style('default_border').color)
+			
 if __name__=='__main__':
 	import pygame
-	pygame.init()
+	import unit_test as ut
 
-	imp.IMP().event_dispatcher = events.EventDispatcher()
+	unit_test = ut.UnitTest(debug=False)
+	window_size = ut.WINDOW_SIZE
 
-	left_btn = Button('Left')
-	right_btn = Button('Right')
-	top_btn = Button('Top')
-	bottom_btn = Button('Bottom')
-	disable_btn = Button('Disable')
-	check_box = CheckBox('Checked', on_checked= lambda event : print('(Un)Checked!'))
-	counter_box = CounterBox(4, can_grow=True)
-	increment_btn = Button('Increment', lambda event : counter_box.increment(1000))
+	btn_enable = Button('DISABLE')
+	chk_box = CheckBox('IS CHECKED', on_checked=lambda event: print('OnChecked'))
+	counter_box = CounterBox(2, can_grow=True)
+	btn_inc = Button('INCREMENT', lambda event : counter_box.increment(5))
 	stop_watch = StopWatch()
-	start_btn = Button('Start', lambda event : stop_watch.start())
-	stop_btn = Button('Stop', lambda event : stop_watch.stop())
-	reset_btn = Button('Reset', lambda event : stop_watch.reset())
+	btn_start = Button('START')
+	btn_reset = Button('RESET')
+	slider_value = CounterBox(2, can_grow=True)
+	slider = Slider()
+	text_box = TextBox(min_size=(100, 50))
 
 	controls = []
-	controls.append(left_btn)
-	controls.append(right_btn)
-	controls.append(top_btn)
-	controls.append(bottom_btn)
-	controls.append(disable_btn)
+	controls.append(btn_enable)
+	controls.append(chk_box)
+	controls.append(slider_value)
+	controls.append(slider)
 	controls.append(counter_box)
-	controls.append(increment_btn)
+	controls.append(btn_inc)
 	controls.append(stop_watch)
-	controls.append(start_btn)
-	controls.append(stop_btn)
-	controls.append(reset_btn)
-	controls.append(check_box)
-	side_bar = SideBar((600, 400), WindowSide.LEFT, controls=controls)
+	controls.append(btn_start)
+	controls.append(btn_reset)
+	controls.append(text_box)
 
-	def on_left_click(event):
-		side_bar.set_window_side(WindowSide.LEFT)
+	def toggle_enable(event):		
+		chk_box.set_enabled(not chk_box.is_enabled)
+		slider_value.set_enabled(not slider_value.is_enabled)
+		slider.set_enabled(not slider.is_enabled)
+		counter_box.set_enabled(not counter_box.is_enabled)
+		btn_inc.set_enabled(not btn_inc.is_enabled)
+		stop_watch.set_enabled(not stop_watch.is_enabled)
+		btn_start.set_enabled(not btn_start.is_enabled)
+		btn_reset.set_enabled(not btn_reset.is_enabled)
+		text_box.set_enabled(not text_box.is_enabled)
+		btn_enable.set_text('ENABLE' if not chk_box.is_enabled else 'DISABLE')
+	btn_enable.on_click = toggle_enable
 
-	def on_right_click(event):
-		side_bar.set_window_side(WindowSide.RIGHT)
+	def reset(event):
+		if stop_watch.is_running:
+			btn_start.set_text('START')
+		stop_watch.reset()
+	btn_reset.on_click = reset
 
-	def on_top_click(event):
-		side_bar.set_window_side(WindowSide.TOP)
+	def start_stop(event):
+		if stop_watch.is_running:
+			btn_start.set_text('START')
+			stop_watch.stop()
+		else:
+			btn_start.set_text('STOP')
+			stop_watch.start()
+	btn_start.on_click = start_stop
 
-	def on_bottom_click(event):
-		side_bar.set_window_side(WindowSide.BOTTOM)
+	def position_controls(w, h):
+		total_height = -10
+		for control in controls:
+			total_height += control.h + 10
 
-	def toggle_controls_enabled(event):
-		controls_enabled = not left_btn.is_enabled
-		left_btn.set_enabled(controls_enabled)
-		right_btn.set_enabled(controls_enabled)
-		top_btn.set_enabled(controls_enabled)
-		bottom_btn.set_enabled(controls_enabled)
-		check_box.set_enabled(controls_enabled)
-		increment_btn.set_enabled(controls_enabled)
-		start_btn.set_enabled(controls_enabled)
-		stop_btn.set_enabled(controls_enabled)
-		reset_btn.set_enabled(controls_enabled)
+		left, top = (w // 2, h // 2 - total_height // 2)
+		for control in controls:
+			control.set_position((left - control.w // 2, top))
+			top += control.h + 10
+	position_controls(*window_size)
 
-	left_btn.set_onclick(on_left_click)
-	right_btn.set_onclick(on_right_click)
-	top_btn.set_onclick(on_top_click)
-	bottom_btn.set_onclick(on_bottom_click)
-	disable_btn.set_onclick(toggle_controls_enabled)
+	def on_refresh(event):
+		position_controls(*window_size)
 
-	def update():
-		side_bar.update()
+	def on_resize(event):
+		global window_size
+		window_size = (event.w, event.h)
+		position_controls(*window_size)
 
-	def draw(surface):
-		surface.fill(Color.TEAL_FELT)
-		side_bar.draw(surface)
-		pygame.display.flip()
+	imp.IMP().add_listener(events.UserEvent(CustomEvent.SLIDER_TICK).create(lambda event : slider_value.set_counter(event.value)))
+	imp.IMP().add_listener(events.UserEvent(CustomEvent.REFRESH_UI).create(on_refresh))
+	imp.IMP().add_listener(events.WindowResizedEvent().create(on_resize))
 
-	surface = pygame.display.set_mode((600, 400), pygame.RESIZABLE)
-	running = True
-	while running:
-		for event in pygame.event.get():
-			imp.IMP().on_event(event)
-			if event.type == pygame.QUIT:
-				running = False
-			elif event.type == pygame.VIDEORESIZE:
-				surface = pygame.display.set_mode((event.w, event.h), pygame.RESIZABLE)
-		update()
-		draw(surface)
-	pygame.quit()
+	unit_test.register(controls)
+	unit_test.run()

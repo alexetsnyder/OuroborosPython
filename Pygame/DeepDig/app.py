@@ -13,12 +13,15 @@ class App:
 		self.surface = pygame.display.set_mode(self.size, pygame.RESIZABLE)
 		self.text = geo.RenderText('Hello World!')
 		self.rect = geo.Rect((10, 10), (20, 20), Color.RED)
-		imp.IMP().event_dispatcher = events.EventDispatcher();
+		imp.IMP().register(self.text)
+		imp.IMP().register(self.rect)
+		imp.IMP().event_dispatcher = events.EventDispatcher()
 		self.wire_events()
 
 	def wire_events(self):
 		imp.IMP().add_listener(events.QuitEvent().create(self.on_quit))
 		imp.IMP().add_listener(events.VideoResizeEvent().create(self.on_resize)) 
+		imp.IMP().add_listener(events.VideoResizeEvent().create(lambda event : self.text.center_on((event.w / 2, event.h / 2))))
 
 	def on_quit(self, event):
 		self.running = False
@@ -26,7 +29,6 @@ class App:
 	def on_resize(self, event):
 		self.size = (event.w, event.h)
 		self.surface = pygame.display.set_mode(self.size, pygame.RESIZABLE)
-		self.text.center_on(tuple(x // 2 for x in self.size))
 
 	def on_event(self, event):
 		imp.IMP().dispatch(event);
@@ -36,8 +38,8 @@ class App:
 
 	def draw(self):
 		self.surface.fill(Color.BLACK)
-		self.text.draw_to(self.surface)
-		self.rect.draw_to(self.surface);
+		for obj in imp.IMP().get_objects():
+			obj.draw_to(self.surface)
 		pygame.display.flip()
 
 	def free(self):

@@ -28,6 +28,9 @@ class IMP:
 	def register(self, obj):
 		self.render_objects.append(obj)
 
+	def get_objects(self):
+		return self.render_objects
+
 	def add_listener(self, delegate):
 		self.event_dispatcher.add_listener(delegate)
 

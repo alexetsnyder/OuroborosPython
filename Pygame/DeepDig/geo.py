@@ -4,9 +4,8 @@ from general import Color
 from pygame import freetype
 
 class Paras:
-	data = {}
-
 	def __init__(self, *args, **kargs):
+		self.data = {}
 		for i in range(len(args)):
 			self.data[i] = args[i];
 		for key, value in kargs.items():
@@ -76,3 +75,6 @@ class RenderText (Plottable):
 
 	def draw_to(self, surface):
 		self.font.render_to(surface, (self.left, self.top), self.text_str, self.font_info.font_color)
+
+if __name__=='__main__':
+	pass

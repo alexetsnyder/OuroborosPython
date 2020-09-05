@@ -1,8 +1,7 @@
 #app.py
-import geo 
 import pygame
+import geo, imp, events 
 from general import Color
-from pygame import freetype
 
 class App:
 	WINDOW_SIZE = (640, 400)
@@ -14,17 +13,23 @@ class App:
 		self.surface = pygame.display.set_mode(self.size, pygame.RESIZABLE)
 		self.text = geo.RenderText('Hello World!')
 		self.rect = geo.Rect((10, 10), (20, 20), Color.RED)
+		imp.IMP().event_dispatcher = events.EventDispatcher();
+		self.wire_events()
+
+	def wire_events(self):
+		imp.IMP().add_listener(events.QuitEvent().create(self.on_quit))
+		imp.IMP().add_listener(events.VideoResizeEvent().create(self.on_resize)) 
+
+	def on_quit(self, event):
+		self.running = False
+
+	def on_resize(self, event):
+		self.size = (event.w, event.h)
+		self.surface = pygame.display.set_mode(self.size, pygame.RESIZABLE)
+		self.text.center_on(tuple(x // 2 for x in self.size))
 
 	def on_event(self, event):
-		if event.type == pygame.QUIT:
-			self.running = False
-		elif event.type == pygame.KEYDOWN:
-			if event.key == pygame.K_ESCAPE:
-				self.running = False
-		elif event.type == pygame.VIDEORESIZE:
-			self.size = (event.w, event.h)
-			self.surface = pygame.display.set_mode(self.size, pygame.RESIZABLE)
-			self.text.center_on(tuple(x // 2 for x in self.size))
+		imp.IMP().dispatch(event);
 
 	def update(self):
 		pass

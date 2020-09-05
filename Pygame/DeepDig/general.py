@@ -12,3 +12,6 @@ class Color:
 	YELLOW 		  = (255, 255,   0)
 	SAND          = ( 76,  70,  50)
 	SILVER 		  = (192, 192, 192)
+
+if __name__=='__main__':
+	pass	

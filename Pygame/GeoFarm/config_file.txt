@@ -1,0 +1,15 @@
+#config_file.txt
+
+IS_DEBUG = True
+WINDOW_SIZE = (600, 400)
+
+APP_TITLE = 'Hello World!'
+NUMBER = 4
+
+MATH = 4 + 4
+A_LIST = [1, 2, 3]
+
+ANOTHER_LIST = [1, "hello", 2, 3
+				4, 5, 6]
+A_STRING = 'Here is a long string
+			on two lines'

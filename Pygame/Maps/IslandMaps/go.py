@@ -209,7 +209,8 @@ class ExpandingText (Text):
 				built_str += self.lines[i][j]
 			built_strs.append(built_str)
 			w, h = self.assay_size(built_strs)
-			if (w >= self.w or)
+			if (w >= self.w):
+				pass
 
 	def assay_size(self, strs):
 		w, h = 0, 0		

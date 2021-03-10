@@ -12,6 +12,7 @@ class TaskType:
 	TURNIP_BOUGHT      = 'tb'
 	TURNIP_PROFIT      = 'tp'
 	TURNIP_TABLE       = 'tt'
+	TURNIP_LOSS        = 'tl'
 
 class CommandLineKeys:
 	TASK       = '-tk'
@@ -71,26 +72,30 @@ class TurnipWeek:
 
 	def __str__(self):
 		ret_str  = 'Buy: {0} -> Sell: {1}'.format(self.buy_price, self.sell_price)
-		ret_str += ' -> Stacks {0:,} -> Turnips: {1:,}'.format(self.stacks, self.turnips) 
-		ret_str += ' -> Cost: {0:,} -> Profit: {1:,}'.format(self.cost, self.profit)
+		ret_str += ' -> Stacks: {0:,} -> Turnips: {1:,}'.format(self.stacks, self.turnips) 
+		ret_str += ' -> Cost: {0:,} -> Sold: {1:,}'.format(self.cost, self.get_sold())
+		ret_str += '-> Profit: {0:,}'.format(self.profit)
 		return ret_str
 
 	def get_profit(buy_price, sell_price, turnips):
 		return turnips * (sell_price - buy_price)
 
-	def get_cost(turnips, buy_price):
+	def get_cost(buy_price, turnips):
 		return turnips * buy_price
+
+	def get_sold(self):
+		return self.turnips * self.sell_price
 
 	def get_week_lacking_profit(buy_price, sell_price, stacks):
 		turnips = stacks * Const.TURNIP_INVENTORY_STACK
-		cost = TurnipWeek.get_cost(turnips, buy_price)
+		cost = TurnipWeek.get_cost(buy_price, turnips)
 		profit = TurnipWeek.get_profit(buy_price, sell_price, turnips)
 		return TurnipWeek(buy_price, sell_price, stacks, cost, profit)
 
 	def get_week_lacking_sell_price(buy_price, stacks, profit):
 		turnips = stacks * Const.TURNIP_INVENTORY_STACK
 		sell_price = round_up(profit / turnips + buy_price)
-		cost = TurnipWeek.get_cost(turnips, buy_price)
+		cost = TurnipWeek.get_cost(buy_price, turnips)
 		return TurnipWeek(buy_price, sell_price, stacks, cost, profit)
 
 	def get_week_lacking_turnips(buy_price, sell_price, profit):
@@ -98,9 +103,15 @@ class TurnipWeek:
 		if not divisor == 0:
 			turnips = round_up(profit / divisor)
 			stacks = turnips // Const.TURNIP_INVENTORY_STACK
-			cost = TurnipWeek.get_cost(turnips, buy_price)
+			cost = TurnipWeek.get_cost(buy_price, turnips)
 			return TurnipWeek(buy_price, sell_price, stacks, cost, profit)
 		return None
+
+	def get_week_lacking_loss(buy_price, sell_price, stacks):
+		turnips = stacks * Const.TURNIP_INVENTORY_STACK
+		cost = TurnipWeek.get_cost(buy_price, turnips)
+		loss = turnips * (buy_price - sell_price)
+		return TurnipWeek(buy_price, sell_price, stacks, cost, -loss)
 
 class StalkMarket:
 	def __init__(self, step_size=10):
@@ -126,8 +137,15 @@ class StalkMarket:
 	def forecast_table(self, buy_price, profit):
 		week_table = []
 		for price in self.sell_price_gen:
-			week_table.append(TurnipWeek.get_week_lacking_turnips(buy_price, price, profit))
+			turnip_week = TurnipWeek.get_week_lacking_turnips(buy_price, price, profit)
+			self.turnip_weeks.append(turnip_week)
+			week_table.append(turnip_week)
 		return week_table
+
+	def forecast_turnip_loss(self, buy_price, sell_price, stacks):
+		turnip_week = TurnipWeek.get_week_lacking_loss(buy_price, sell_price, stacks)
+		self.turnip_weeks.append(turnip_week)
+		return turnip_week
 
 	def get_turnips_from_bells(self, buy_price, amount):
 		turnips = round_up(amount / buy_price)
@@ -176,6 +194,8 @@ class CommandLine:
 		self.print_paras([CommandLineKeys.BUY_PRICE, CommandLineKeys.SELL_PRICE, CommandLineKeys.STACKS])
 		self.print_task(TaskType.TURNIP_TABLE, 'Creates a table of weeks with varying sell prices')
 		self.print_paras([CommandLineKeys.BUY_PRICE, CommandLineKeys.PROFIT])
+		self.print_task(TaskType.TURNIP_LOSS, 'Computes the loss from selling at a lower price than bought')
+		self.print_paras([CommandLineKeys.BUY_PRICE, CommandLineKeys.SELL_PRICE, CommandLineKeys.STACKS])
 
 	def ExecuteTask(self):
 		if self.task_type == TaskType.TURNIP_HELP:
@@ -199,6 +219,9 @@ class CommandLine:
 		elif self.task_type == TaskType.TURNIP_TABLE:
 			if not self.buy_price == 0 and not self.profit == 0:
 				print('\n'.join([str(week) for week in self.stalk_market.forecast_table(self.buy_price, self.profit)]))
+		elif self.task_type == TaskType.TURNIP_LOSS:
+			if not self.buy_price == 0 and not self.sell_price == 0 and not self.stacks == 0:
+				print(self.stalk_market.forecast_turnip_loss(self.buy_price, self.sell_price, self.stacks))
 
 	def run(self):
 		if not self.task_type == None:

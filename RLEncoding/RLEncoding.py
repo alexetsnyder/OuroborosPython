@@ -50,11 +50,24 @@ def decode(EncodedRow):
             VoxelRow.append(getVoxel(int.to_bytes(voxel)))
     
     return  VoxelRow
+    
+def indexVoxel(EnodedRow, index):
+    runLength = 0
+    for i in range(len(EncodedRow)):
+        value = int.from_bytes(EncodedRow[i])
+        count = (value >> 8) & 0xFF
+        runLength += count
+        if runLength > index:
+            return getVoxel(int.to_bytes(value & 0xFF))
 
 if __name__ == '__main__':
     EncodedRow = encode(VoxelRow)
     
     print(EncodedRow)
+    
+    print()
+    print(indexVoxel(EncodedRow, 5))
+    print()
     
     DecodedRow = decode(EncodedRow)
     
